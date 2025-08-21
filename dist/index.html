@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- SEO -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>John Doe</title>
+    <!-- SEO -->
+
+    <style>
+        /* STYLE */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', 'Monaco', monospace;
+            font-size: 16px;
+            line-height: 1.4;
+            color: #000;
+            background: #fff;
+            width: 80vw;
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 40px 0;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 60px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 20px;
+        }
+
+        .name {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .posts {
+            margin-bottom: 80px;
+        }
+
+        .post {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            margin: 0 -20px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .post::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: #f5f5dc;
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .post:hover::before {
+            left: 0;
+        }
+
+        .post-title {
+            flex: 1;
+            margin-right: 20px;
+        }
+
+        .post-link {
+            color: #000;
+            text-decoration: none;
+            font-weight: normal;
+        }
+
+        .post-date {
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            font-weight: bold;
+        }
+
+        .footer {
+            border-top: 2px solid #000;
+            padding-top: 20px;
+            display: flex;
+            gap: 30px;
+        }
+
+        .social-link {
+            color: #000;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .social-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                width: 95vw;
+                padding: 20px 0;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .post {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 8px 15px;
+                margin: 0 -15px;
+            }
+
+            .post-title {
+                margin-right: 0;
+                margin-bottom: 4px;
+            }
+
+            .footer {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+        }
+    /* STYLE */
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1 class="name">Omkaar Kamath</h1>
+        <div>
+        <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
+        <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
+        <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+        </div>
+    </header>
+
+    <main class="posts" id="posts-container">
+        
+        <div class="post">
+            <div class="post-title">
+                <a href="why-i-made-this-website.html" class="post-link">Why I made this website</a>
+            </div>
+            <div class="post-date">2025-08-21</div>
+        </div>
+        
+
+        <div class="post">
+            <div class="post-title">
+                <a href="on-the-power-of-no.html" class="post-link">On the power of 'No'</a>
+            </div>
+            <div class="post-date">2025-08-22</div>
+        </div>
+        
+        
+        
+        <div class="post">
+            <div class="post-title">
+                <a href="why-i-made-this-website.html" class="post-link">Why I made this website</a>
+            </div>
+            <div class="post-date">2025-08-21</div>
+        </div>
+        
+
+        <div class="post">
+            <div class="post-title">
+                <a href="on-the-power-of-no.html" class="post-link">On the power of 'No'</a>
+            </div>
+            <div class="post-date">2025-08-22</div>
+        </div>
+        
+    </main>
+
+    <script></script>
+</body>
+</html>
