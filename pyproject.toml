@@ -1,0 +1,9 @@
+[project]
+name = "personal-website"
+version = "0.1"
+description = "Converts post md templates and main html to static site"
+requires-python = ">=3.8"
+
+dependencies = [
+    "mistune>=3.1.3",
+]

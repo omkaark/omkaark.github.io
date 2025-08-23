@@ -1,2 +1,3 @@
 - SEO on each blog post must be good, if image exists, set og to that
+- sitemap.xml generated too
 - cute stick figure animations

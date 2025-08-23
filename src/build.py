@@ -11,15 +11,14 @@ import json
 import re
 import shutil
 from pathlib import Path
+import mistune
 
 
 def slugify(text):
     """Convert post title to filename format (lowercase, no punctuation, spaces to dashes)"""
     text = text.lower()
-    # Remove punctuation except spaces and dashes
-    text = re.sub(r'[^\w\s-]', '', text)
-    # Replace multiple spaces/dashes with single dash
-    text = re.sub(r'[-\s]+', '-', text)
+    text = re.sub(r'[^\w\s-]', '', text) # remove punctuation except spaces and dashes
+    text = re.sub(r'[-\s]+', '-', text) # replace spaces/dashes with single dash
     return text.strip('-')
 
 
@@ -32,7 +31,6 @@ def markdown_to_html(markdown_text):
     for line in lines:
         line = line.strip()
         
-        # Handle headers
         if line.startswith('### '):
             if in_paragraph:
                 html_lines.append('</p>')
@@ -48,34 +46,34 @@ def markdown_to_html(markdown_text):
                 html_lines.append('</p>')
                 in_paragraph = False
             html_lines.append(f'<h1>{line[2:]}</h1>')
-        elif line == '':
-            # Empty line - close paragraph if open
+        elif line.startswith('# '):
+            if in_paragraph:
+                html_lines.append('</p>')
+                in_paragraph = False
+            html_lines.append(f'<h1>{line[2:]}</h1>')
+        elif line == '': # empty line - close paragraph if open
             if in_paragraph:
                 html_lines.append('</p>')
                 in_paragraph = False
         else:
-            # Regular content line
             if not in_paragraph:
                 html_lines.append('<p>')
                 in_paragraph = True
             else:
                 html_lines.append(' ')
             
-            # Handle inline formatting
+            # handle inline formatting
             processed_line = line
             
-            # Bold text **text**
-            processed_line = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', processed_line)
+            processed_line = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', processed_line) # bold text **text**
             
-            # Italic text *text*
-            processed_line = re.sub(r'\*(.*?)\*', r'<em>\1</em>', processed_line)
+            processed_line = re.sub(r'\*(.*?)\*', r'<em>\1</em>', processed_line) # italic text *text*
             
-            # Links [text](url)
-            processed_line = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', processed_line)
+            processed_line = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', processed_line) # links [text](url)
             
             html_lines.append(processed_line)
     
-    # Close final paragraph if needed
+    # close final paragraph if needed
     if in_paragraph:
         html_lines.append('</p>')
     
@@ -145,11 +143,23 @@ def extract_css_from_index():
 .post-content p {
     margin-bottom: 20px;
     line-height: 1.6;
+    font-size: 20px;
 }
 
 .post-content a {
     color: #000;
     text-decoration: underline;
+}
+
+.post-content img {
+    margin: 20px 0 20px 0;
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .post-content a:hover {
@@ -167,6 +177,38 @@ def extract_css_from_index():
         font-size: 28px;
     }
 }
+
+/* Inline code */
+.post-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: .95em;
+  background: rgba(127,127,127,.12);
+  border: 1px solid rgba(127,127,127,.25);
+  padding: .15em .4em;
+  border-radius: .35em;
+  word-break: break-word;
+}
+
+/* Code blocks */
+.post-content pre {
+  margin: 20px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(127,127,127,.25);
+  background: #f7f7f9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  tab-size: 2;
+}
+
+.post-content pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
+  line-height: 1.55;
+  display: block;
+  white-space: pre;          /* keep formatting */
+}
+
 """
     
     return base_css + post_css
@@ -182,12 +224,14 @@ def build_index_page(posts):
     for post in posts:
         slug = slugify(post['name'])
         posts_html.append(f'''
-        <div class="post">
-            <div class="post-title">
-                <a href="{slug}.html" class="post-link">{post['name']}</a>
+        <a href="posts/{slug}.html" class="post-link">
+            <div class="post">
+                <div class="post-title">
+                    {post['name']}
+                </div>
+                <div class="post-date">{post['date']}</div>
             </div>
-            <div class="post-date">{post['date']}</div>
-        </div>
+        </a>
         ''')
     
     # Replace posts placeholder
@@ -197,10 +241,10 @@ def build_index_page(posts):
     return index_html
 
 
-def build_post_page(post, css):
+def build_post_page(idx, post, css):
     """Build individual post page"""
     slug = slugify(post['name'])
-    markdown_file = Path('posts') / f'{slug}.md'
+    markdown_file = Path('posts') / f'{idx}.md'
     
     if not markdown_file.exists():
         print(f"Warning: {markdown_file} not found, skipping...")
@@ -209,7 +253,9 @@ def build_post_page(post, css):
     with open(markdown_file, 'r', encoding='utf-8') as f:
         markdown_content = f.read()
     
-    html_content = markdown_to_html(markdown_content)
+    html_content = mistune.html(markdown_content)
+
+    print(html_content)
     
     post_html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -224,9 +270,7 @@ def build_post_page(post, css):
 </head>
 <body>
     <header class="header">
-        <h1 class="name">
-            <a href="index.html" style="color: #000; text-decoration: none;">Omkaar Kamath</a>
-        </h1>
+        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
         <div>
             <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
             <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
@@ -235,14 +279,7 @@ def build_post_page(post, css):
     </header>
     
     <main class="post-content">
-        <div class="post-meta">
-            <a href="index.html" class="back-link">← Back</a>
-            <div class="post-date">{post['date']}</div>
-        </div>
-        
-        <article>
 {html_content}
-        </article>
     </main>
 </body>
 </html>'''
@@ -255,14 +292,12 @@ def build_site():
     print("Building static site...")
     
     # Create/clean dist directory
-    dist_dir = Path(Path(__file__).parent.parent, 'dist')
+    dist_dir = Path(Path(__file__).parent.parent, 'docs')
     if dist_dir.exists():
         shutil.rmtree(dist_dir)
     dist_dir.mkdir()
 
     posts_dir = dist_dir / 'posts'
-    if posts_dir.exists():
-        shutil.rmtree(posts_dir)
     posts_dir.mkdir()
     
     # Read posts configuration
@@ -291,9 +326,9 @@ def build_site():
     
     # Build individual post pages
     posts_built = 0
-    for post in posts:
+    for idx, post in enumerate(posts, start=1):
         try:
-            post_html = build_post_page(post, css)
+            post_html = build_post_page(idx, post, css)
             if post_html:
                 slug = slugify(post['name'])
                 with open(posts_dir / f'{slug}.html', 'w', encoding='utf-8') as f:
@@ -304,9 +339,9 @@ def build_site():
             print(f"Error building post '{post['name']}': {e}")
     
     print(f"\n🎉 Site built successfully!")
-    print(f"   📄 Index page: dist/index.html")
-    print(f"   📝 Posts built: {posts_built}/{len(posts)}")
-    print(f"   📁 Output directory: dist/")
+    print(f"Index page: docs/index.html")
+    print(f"Posts built: {posts_built}/{len(posts)}")
+    print(f"Output directory: docs/")
     
     return True
 
