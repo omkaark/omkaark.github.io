@@ -392,6 +392,16 @@ def build_site():
         print(f"Error generating sitemap: {e}")
         return False
     
+    # Write CNAME
+    try:
+        cname_path = dist_dir / 'CNAME'
+        with open(cname_path, 'w', encoding='utf-8') as f:
+            f.write('omkaark.com\n')
+        print(f"-> Wrote CNAME")
+    except Exception as e:
+        print(f"Error writing CNAME: {e}")
+        return False
+    
     print()
     print(f"- Site built successfully!")
     print(f"- Index page: docs/index.html")
