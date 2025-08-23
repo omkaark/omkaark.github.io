@@ -1,3 +1,4 @@
 - SEO on each blog post must be good, if image exists, set og to that
-- sitemap.xml generated too
 - cute stick figure animations
+- don't rebuild every page, only do diffs.
+- handle public/ folder and put in /docs. the problem is docs gets deleted everytime.

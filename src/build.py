@@ -144,6 +144,7 @@ def extract_css_from_index():
     margin-bottom: 20px;
     line-height: 1.6;
     font-size: 20px;
+    font-family: Monaco, monospace;
 }
 
 .post-content a {
@@ -172,9 +173,17 @@ def extract_css_from_index():
         align-items: flex-start;
         gap: 10px;
     }
+
+    .post-content {
+        margin: 0px 10px;
+    }
     
     .post-content h1 {
         font-size: 28px;
+    }
+
+    .post-content p {
+        font-family: Monaco, monospace;
     }
 }
 
@@ -273,6 +282,7 @@ def build_post_page(idx, post, css):
             <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
             <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
             <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
         </div>
     </header>
     
@@ -283,6 +293,44 @@ def build_post_page(idx, post, css):
 </html>'''
     
     return post_html
+
+
+def generate_sitemap(posts, output_directory):
+    """Generate XML sitemap for the website"""
+    base_url = "https://omkaark.com"
+    
+    sitemap_content = ['<?xml version="1.0" encoding="UTF-8"?>']
+    sitemap_content.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+    
+    # Add homepage
+    sitemap_content.append('  <url>')
+    sitemap_content.append(f'    <loc>{base_url}/</loc>')
+    sitemap_content.append('    <changefreq>weekly</changefreq>')
+    sitemap_content.append('    <priority>1.0</priority>')
+    sitemap_content.append('  </url>')
+    
+    # Add post pages
+    for post in posts:
+        slug = slugify(post['name'])
+        post_date = post['date']  # Format: YYYY-MM-DD
+        
+        sitemap_content.append('  <url>')
+        sitemap_content.append(f'    <loc>{base_url}/posts/{slug}.html</loc>')
+        sitemap_content.append(f'    <lastmod>{post_date}</lastmod>')
+        sitemap_content.append('    <changefreq>monthly</changefreq>')
+        sitemap_content.append('    <priority>0.8</priority>')
+        sitemap_content.append('  </url>')
+    
+    sitemap_content.append('</urlset>')
+    
+    # Write sitemap to file
+    sitemap_xml = '\n'.join(sitemap_content)
+    sitemap_path = output_directory / 'sitemap.xml'
+    
+    with open(sitemap_path, 'w', encoding='utf-8') as f:
+        f.write(sitemap_xml)
+    
+    return sitemap_path
 
 
 def build_site():
@@ -336,10 +384,19 @@ def build_site():
         except Exception as e:
             print(f"Error building post '{post['name']}': {e}")
     
+    # Generate sitemap
+    try:
+        generate_sitemap(posts, dist_dir)
+        print(f"-> Built sitemap.xml")
+    except Exception as e:
+        print(f"Error generating sitemap: {e}")
+        return False
+    
     print()
     print(f"- Site built successfully!")
     print(f"- Index page: docs/index.html")
     print(f"- Posts built: {posts_built}/{len(posts)}")
+    print(f"- Sitemap: docs/sitemap.xml")
     print(f"- Output directory: docs/")
     
     return True
