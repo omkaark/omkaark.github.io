@@ -79,157 +79,66 @@ def markdown_to_html(markdown_text):
     
     return ''.join(html_lines)
 
+def get_image_link(image_name):
+    """Image name to github raw link"""
+    return f"https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/{image_name}?raw=true"
 
-def extract_css_from_index():
-    """Extract CSS from index.html between STYLE comments"""
-    with open('index.html', 'r', encoding='utf-8') as f:
+def get_css():
+    """Get CSS from style.css"""
+    with open('style.css', 'r', encoding='utf-8') as f:
         content = f.read()
     
-    # Extract CSS between /* STYLE */ comments
-    css_match = re.search(r'/\* STYLE \*/(.*?)/\* STYLE \*/', content, re.DOTALL)
-    if css_match:
-        base_css = css_match.group(1).strip()
+    return content
+
+def get_head_tags(name: str = 'index', image_name = 'omkaark.jpeg'):
+    """Get head tags for SEO"""
+    if name == 'index':
+        head_tags = f'''
+            <link rel="icon" type="image/x-icon" href="{get_image_link('compass.jpg')}">
+            <title>Omkaar's Recipes</title>
+            <meta name="description" content="These are all my thoughts that I want google and chatgpt to index.">
+            <meta property="og:title" content="Omkaar's Recipes">
+            <meta property="og:description" content="These are all my thoughts that I want google and chatgpt to index.">
+            <meta property="og:type" content="website">
+            <meta property="og:url" content="https://omkaark.com">
+            <meta property="og:image" content="{get_image_link(image_name)}">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="Omkaar's Recipes">
+            <meta name="twitter:description" content="These are all my thoughts that I want google and chatgpt to index.">
+            <meta name="twitter:image" content="{get_image_link(image_name)}">
+        '''
     else:
-        # Fallback: extract from <style> tags
-        style_match = re.search(r'<style>(.*?)</style>', content, re.DOTALL)
-        base_css = style_match.group(1).strip() if style_match else ""
-    
-    # Add post-specific CSS
-    post_css = """
-.post-content {
-    margin-bottom: 80px;
-    max-width: 800px;
-}
-
-.post-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 40px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #000;
-}
-
-.back-link {
-    color: #000;
-    text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: bold;
-}
-
-.back-link:hover {
-    text-decoration: underline;
-}
-
-.post-content h1 {
-    margin: 30px 0 20px 0;
-    font-size: 32px;
-    line-height: 1.2;
-}
-
-.post-content h2 {
-    margin: 30px 0 15px 0;
-    font-size: 24px;
-    line-height: 1.3;
-}
-
-.post-content h3 {
-    margin: 25px 0 10px 0;
-    font-size: 20px;
-    line-height: 1.3;
-}
-
-.post-content p {
-    margin-bottom: 20px;
-    line-height: 1.6;
-    font-size: 20px;
-    font-family: Monaco, monospace;
-}
-
-.post-content a {
-    color: #000;
-    text-decoration: underline;
-}
-
-.post-content img {
-    margin: 20px 0 20px 0;
-    max-width: 100%;
-    max-height: 400px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.post-content a:hover {
-    background: #f5f5dc;
-}
-
-@media (max-width: 768px) {
-    .post-meta {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-
-    .post-content {
-        margin: 0px 10px;
-    }
-    
-    .post-content h1 {
-        font-size: 28px;
-    }
-
-    .post-content p {
-        font-family: Monaco, monospace;
-    }
-}
-
-/* Inline code */
-.post-content :not(pre) > code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: .95em;
-  background: rgba(127,127,127,.12);
-  border: 1px solid rgba(127,127,127,.25);
-  padding: .15em .4em;
-  border-radius: .35em;
-  word-break: break-word;
-}
-
-/* Code blocks */
-.post-content pre {
-  margin: 20px 0;
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(127,127,127,.25);
-  background: #f7f7f9;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  tab-size: 2;
-}
-
-.post-content pre code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 14px;
-  line-height: 1.55;
-  display: block;
-  white-space: pre;          /* keep formatting */
-}
-
-"""
-    
-    return base_css + post_css
-
+        head_tags = f'''
+            <link rel="icon" type="image/x-icon" href="{get_image_link('compass.jpg')}">
+            <title>{name} - Omkaar Kamath</title>
+            <meta name="description" content="{name} - Personal blog post">
+            <meta property="og:title" content="{name} - Omkaar Kamath">
+            <meta property="og:description" content="{name} - Personal blog post">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/{slugify(name)}.html">
+            <meta property="og:image" content="{get_image_link(image_name)}">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="{name} - Omkaar Kamath">
+            <meta name="twitter:description" content="{name} - Personal blog post">
+            <meta name="twitter:image" content="{get_image_link(image_name)}">
+        '''
+    return head_tags
 
 def build_index_page(posts):
     """Build the main index page with post list"""
-    with open('index.html', 'r', encoding='utf-8') as f:
+    with open('template.html', 'r', encoding='utf-8') as f:
         template = f.read()
-    
-    # Generate posts HTML
-    posts_html = []
+
+    # Replace styles
+    css = get_css()
+    index_html = template.replace('/* STYLE */', css)
+
+    # Replace SEO meta tags
+    head_tags = get_head_tags()
+    index_html = index_html.replace('<!-- SEO -->', head_tags)
+
+    # Replace content with posts
+    posts_html = ['<main class="posts" id="posts-container">']
     for post in reversed(posts):
         slug = slugify(post['name'])
         posts_html.append(f'''
@@ -242,10 +151,9 @@ def build_index_page(posts):
             </div>
         </a>
         ''')
-    
-    # Replace posts placeholder
+    posts_html.append('</main>')
     posts_section = '\n'.join(posts_html)
-    index_html = template.replace('<!-- POSTS -->', posts_section)
+    index_html = index_html.replace('<!-- CONTENT -->', posts_section)
     
     return index_html
 
@@ -253,6 +161,19 @@ def build_index_page(posts):
 def build_post_page(idx, post, css):
     """Build individual post page"""
     slug = slugify(post['name'])
+
+    with open('template.html', 'r', encoding='utf-8') as f:
+        template = f.read()
+
+    # Replace styles
+    css = get_css()
+    index_html = template.replace('/* STYLE */', css)
+
+    # Replace SEO meta tags
+    head_tags = get_head_tags(post['name'], image_name=post.get('image', 'omkaark.jpeg'))
+    index_html = index_html.replace('<!-- SEO -->', head_tags)
+
+    # Write post content
     markdown_file = Path('posts') / f'{idx}.md'
     
     if not markdown_file.exists():
@@ -263,36 +184,14 @@ def build_post_page(idx, post, css):
         markdown_content = f.read()
     
     html_content = mistune.html(markdown_content)
-    
-    post_html = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{post['name']} - Omkaar Kamath</title>
-    <meta name="description" content="{post['name']} - Personal blog post">
-    <style>
-{css}
-    </style>
-</head>
-<body>
-    <header class="header">
-        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
-        <div>
-            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
-            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
-            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
-            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
-        </div>
-    </header>
-    
+    post_html = f'''
     <main class="post-content">
-{html_content}
+        {html_content}
     </main>
-</body>
-</html>'''
+    '''
+    index_html = index_html.replace('<!-- CONTENT -->', post_html)
     
-    return post_html
+    return index_html
 
 
 def generate_sitemap(posts, output_directory):
@@ -358,7 +257,7 @@ def build_site():
         return False
     
     # Extract CSS
-    css = extract_css_from_index()
+    css = get_css()
     
     # Build index page
     try:

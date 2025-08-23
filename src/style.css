@@ -1,23 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    
-            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
-            <title>Why >> How - Omkaar Kamath</title>
-            <meta name="description" content="Why >> How - Personal blog post">
-            <meta property="og:title" content="Why >> How - Omkaar Kamath">
-            <meta property="og:description" content="Why >> How - Personal blog post">
-            <meta property="og:type" content="article">
-            <meta property="og:url" content="https://omkaark.com/posts/why-how.html">
-            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
-            <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:title" content="Why >> How - Omkaar Kamath">
-            <meta name="twitter:description" content="Why >> How - Personal blog post">
-            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
-        
-
-    <style>
-    /* STYLES */
+/* STYLES */
 * {
   margin: 0;
   padding: 0;
@@ -227,7 +208,7 @@ body {
 }
 
 /* RESPONSIVE (<=768px) */
-@media (max-width: 768px) {
+@media screen and (max-device-width:768px), screen and (max-width:768px) {
   body {
     width: 95vw;
     padding: 20px 0;
@@ -274,28 +255,3 @@ body {
     font-size: 28px;
   }
 }
-
-    </style>
-</head>
-<body>
-    <header class="header">
-        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
-        <div>
-            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
-            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
-            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
-            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
-        </div>
-    </header>
-
-    
-    <main class="post-content">
-        <h1>Why &gt;&gt; How</h1>
-<p>&quot;He who has a why to live for can bear almost any how&quot; - My friend Adi recited Nietzsche's quote which unlocked a lot of perspective for me.</p>
-<p><img src="https://cdn.britannica.com/65/216665-050-A83A782E/Sisyphus-Titian-1548-49-Prado-Museum-Madrid.jpg" alt="Sispyhus" /></p>
-<p>p.s. I am testing my parser's capabilities don't mind these inspirational posts.</p>
-
-    </main>
-    
-</body>
-</html>

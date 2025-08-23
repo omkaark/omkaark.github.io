@@ -1,238 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Why I made this website - Omkaar Kamath</title>
-    <meta name="description" content="Why I made this website - Personal blog post">
+    
+            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
+            <title>Why I made this website - Omkaar Kamath</title>
+            <meta name="description" content="Why I made this website - Personal blog post">
+            <meta property="og:title" content="Why I made this website - Omkaar Kamath">
+            <meta property="og:description" content="Why I made this website - Personal blog post">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/why-i-made-this-website.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="Why I made this website - Omkaar Kamath">
+            <meta name="twitter:description" content="Why I made this website - Personal blog post">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+        
+
     <style>
+    /* STYLES */
 * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-        body {
-            font-family: 'Courier New', 'Monaco', monospace;
-            font-size: 16px;
-            line-height: 1.4;
-            color: #000;
-            background: #fff;
-            width: 80vw;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 40px 0;
-        }
+body {
+  font-family: 'Courier New', 'Monaco', monospace;
+  font-size: 16px;
+  line-height: 1.4;
+  color: #000;
+  background: #fff;
+  width: 80vw;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 0;
+}
 
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 40px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 20px;
-        }
+/* HEADER */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  border-bottom: 2px solid #000;
+  padding-bottom: 20px;
+}
 
-        .name {
-            font-size: 24px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
+.name {
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
 
-        .posts {
-            margin-bottom: 80px;
-            font-size: 20px;
-        }
+/* INDEX / POSTS LIST */
+.posts {
+  margin-bottom: 80px;
+  font-size: 20px;
+}
 
-        .post {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 20px;
-            margin: 20px 0px;
-            position: relative;
-            overflow: hidden;
-            cursor: pointer;
-        }
+.post {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  margin: 20px 0;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
 
-        .post::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: #FFFDD0;
-            transition: left 0.15s ease;
-            z-index: -1;
-        }
+.post::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: #FFFDD0;
+  transition: left 0.15s ease;
+  z-index: -1;
+}
 
-        .post:hover::before {
-            left: 0;
-        }
+.post:hover::before {
+  left: 0;
+}
 
-        .post-title {
-            flex: 1;
-            margin-right: 20px;
-        }
+.post-title {
+  flex: 1;
+  margin-right: 20px;
+}
 
-        .post-link {
-            color: #000;
-            text-decoration: none;
-            font-weight: normal;
-        }
+.post-link {
+  color: #000;
+  text-decoration: none;
+  font-weight: normal;
+}
 
-        .post-date {
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-            font-weight: bold;
-        }
+.post-date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: bold;
+}
 
-        .footer {
-            border-top: 2px solid #000;
-            padding-top: 20px;
-            display: flex;
-            gap: 30px;
-        }
+/* FOOTER */
+.footer {
+  border-top: 2px solid #000;
+  padding-top: 20px;
+  display: flex;
+  gap: 30px;
+}
 
-        .social-link {
-            color: #000;
-            text-decoration: none;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: bold;
-        }
+.social-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
 
-        .social-link:hover {
-            text-decoration: underline;
-        }
+.social-link:hover {
+  text-decoration: underline;
+}
 
-        @media (max-width: 768px) {
-            body {
-                width: 95vw;
-                padding: 20px 0;
-            }
-            
-            .header {
-                flex-direction: column;
-                justify-items: center;
-            }
-
-            .post {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 8px 15px;
-                margin: 20px 10px;
-                background: #FFFDD0;
-            }
-
-            .post::before {
-                display: none;
-            }
-
-            .post-title {
-                margin-right: 0;
-                margin-bottom: 4px;
-            }
-
-            .footer {
-                flex-wrap: wrap;
-                gap: 15px;
-            }
-        }
+/* POST PAGE */
 .post-content {
-    margin-bottom: 80px;
-    max-width: 800px;
+  margin-bottom: 80px;
+  max-width: 800px;
 }
 
 .post-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 40px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #000;
 }
 
 .back-link {
-    color: #000;
-    text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: bold;
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: bold;
 }
 
 .back-link:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
 
 .post-content h1 {
-    margin: 30px 0 20px 0;
-    font-size: 32px;
-    line-height: 1.2;
+  margin: 30px 0 20px;
+  font-size: 32px;
+  line-height: 1.2;
 }
 
 .post-content h2 {
-    margin: 30px 0 15px 0;
-    font-size: 24px;
-    line-height: 1.3;
+  margin: 30px 0 15px;
+  font-size: 24px;
+  line-height: 1.3;
 }
 
 .post-content h3 {
-    margin: 25px 0 10px 0;
-    font-size: 20px;
-    line-height: 1.3;
+  margin: 25px 0 10px;
+  font-size: 20px;
+  line-height: 1.3;
 }
 
 .post-content p {
-    margin-bottom: 20px;
-    line-height: 1.6;
-    font-size: 20px;
-    font-family: Monaco, monospace;
+  margin-bottom: 20px;
+  line-height: 1.6;
+  font-size: 20px;
+  font-family: Monaco, monospace;
 }
 
 .post-content a {
-    color: #000;
-    text-decoration: underline;
-}
-
-.post-content img {
-    margin: 20px 0 20px 0;
-    max-width: 100%;
-    max-height: 400px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
+  color: #000;
+  text-decoration: underline;
 }
 
 .post-content a:hover {
-    background: #f5f5dc;
+  background: #f5f5dc;
 }
 
-@media (max-width: 768px) {
-    .post-meta {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-
-    .post-content {
-        margin: 0px 10px;
-    }
-    
-    .post-content h1 {
-        font-size: 28px;
-    }
-
-    .post-content p {
-        font-family: Monaco, monospace;
-    }
+.post-content img {
+  margin: 20px 0;
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-/* Inline code */
+/* INLINE CODE */
 .post-content :not(pre) > code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: .95em;
@@ -243,7 +206,7 @@
   word-break: break-word;
 }
 
-/* Code blocks */
+/* CODE BLOCKS */
 .post-content pre {
   margin: 20px 0;
   padding: 14px 16px;
@@ -260,9 +223,57 @@
   font-size: 14px;
   line-height: 1.55;
   display: block;
-  white-space: pre;          /* keep formatting */
+  white-space: pre; /* keep formatting */
 }
 
+/* RESPONSIVE (<=768px) */
+@media (max-width: 768px) {
+  body {
+    width: 95vw;
+    padding: 20px 0;
+  }
+
+  .header {
+    flex-direction: column;
+    justify-items: center;
+  }
+
+  .post {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 15px;
+    margin: 20px 10px;
+    background: #FFFDD0; /* same as hover band */
+  }
+
+  .post::before {
+    display: none;
+  }
+
+  .post-title {
+    margin-right: 0;
+    margin-bottom: 4px;
+  }
+
+  .footer {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .post-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .post-content {
+    margin: 0 10px;
+  }
+
+  .post-content h1 {
+    font-size: 28px;
+  }
+}
 
     </style>
 </head>
@@ -276,9 +287,10 @@
             <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
         </div>
     </header>
+
     
     <main class="post-content">
-<h1>Look ma, I have a website</h1>
+        <h1>Look ma, I have a website</h1>
 <p>I have wanted a personal website for the longest time, having my thoughts indexed by google and chatgpt is a compelling idea. I couldn't figure out a style that is &quot;me&quot;, so I put this task aside for a while. This changed when my friend pavski showed me Tom Tunguz's <a href="tomtunguz.com">website</a>.</p>
 <p>I like simple, minimal HTML/CSS type websites. I don't want the overhead of writing HTML/CSS everytime for each blog post. So, I wrote a build.py <a href="https://github.com/omkaark/omkaark.github.io/blob/main/src/build.py">script</a> which uses <code>mistune</code> to convert markdown to html which makes my life really simple. I have to write one tiny css layer to beautify this transpiled html.</p>
 <p>I can even have a code block</p>
@@ -288,5 +300,6 @@
 </code></pre>
 
     </main>
+    
 </body>
 </html>
