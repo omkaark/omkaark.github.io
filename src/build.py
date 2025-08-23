@@ -221,7 +221,7 @@ def build_index_page(posts):
     
     # Generate posts HTML
     posts_html = []
-    for post in posts:
+    for post in reversed(posts):
         slug = slugify(post['name'])
         posts_html.append(f'''
         <a href="posts/{slug}.html" class="post-link">
@@ -254,8 +254,6 @@ def build_post_page(idx, post, css):
         markdown_content = f.read()
     
     html_content = mistune.html(markdown_content)
-
-    print(html_content)
     
     post_html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -319,7 +317,7 @@ def build_site():
         index_html = build_index_page(posts)
         with open(dist_dir / 'index.html', 'w', encoding='utf-8') as f:
             f.write(index_html)
-        print(f"✓ Built index.html")
+        print(f"-> Built index.html")
     except Exception as e:
         print(f"Error building index page: {e}")
         return False
@@ -333,15 +331,16 @@ def build_site():
                 slug = slugify(post['name'])
                 with open(posts_dir / f'{slug}.html', 'w', encoding='utf-8') as f:
                     f.write(post_html)
-                print(f"✓ Built {slug}.html")
+                print(f"-> Built posts/{slug}.html")
                 posts_built += 1
         except Exception as e:
             print(f"Error building post '{post['name']}': {e}")
     
-    print(f"\n🎉 Site built successfully!")
-    print(f"Index page: docs/index.html")
-    print(f"Posts built: {posts_built}/{len(posts)}")
-    print(f"Output directory: docs/")
+    print()
+    print(f"- Site built successfully!")
+    print(f"- Index page: docs/index.html")
+    print(f"- Posts built: {posts_built}/{len(posts)}")
+    print(f"- Output directory: docs/")
     
     return True
 
