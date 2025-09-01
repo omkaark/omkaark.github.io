@@ -101,8 +101,26 @@ body {
 }
 .post:hover::before { left: 0; }
 
+.post-hover-gif {
+  position: absolute;
+  height: 4rem;
+  width: 40rem;
+  background-image: url("https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/run.gif?raw=true");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: right;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 120ms ease-in;
+}
+
+.post-link:hover .post-hover-gif { 
+  opacity: 1; 
+}
+
 .post-title { flex: 1; margin-right: 1.25rem; }
-.post-link { color: #000; text-decoration: none; font-weight: 400; }
+.post-link { color: #000; text-decoration: none; font-weight: 400; position: relative; }
 
 .post-date {
   font-variant-numeric: tabular-nums;
@@ -248,6 +266,10 @@ body {
   .post-meta { flex-direction: column; align-items: flex-start; gap: 0.625rem; }
 
   .post-content { margin: 0 0.625rem; }
+
+  .post-link:hover .post-hover-gif { 
+    opacity: 0;
+  }
 }
 
     </style>
@@ -266,6 +288,7 @@ body {
     <main class="posts" id="posts-container">
 
         <a href="posts/why-how.html" class="post-link">
+            <span class="post-hover-gif" aria-hidden="true"></span>
             <div class="post">
                 <div class="post-title">
                     Why >> How
@@ -276,6 +299,7 @@ body {
         
 
         <a href="posts/why-i-made-this-website.html" class="post-link">
+            <span class="post-hover-gif" aria-hidden="true"></span>
             <div class="post">
                 <div class="post-title">
                     Why I made this website

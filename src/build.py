@@ -143,6 +143,7 @@ def build_index_page(posts):
         slug = slugify(post['name'])
         posts_html.append(f'''
         <a href="posts/{slug}.html" class="post-link">
+            <span class="post-hover-gif" aria-hidden="true"></span>
             <div class="post">
                 <div class="post-title">
                     {post['name']}
