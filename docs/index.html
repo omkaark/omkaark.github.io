@@ -26,13 +26,11 @@
   --scale: 1.25;          /* modular scale ratio: Major Third */
 
   /* Precomputed steps off the base using the scale (no px anywhere) */
-  --step--1: calc(var(--base) / var(--scale));                 /* 0.8x */
-  --step--2: calc(var(--step--1) / var(--scale));              /* 0.64x */
-  --step-0:  var(--base);                                      /* 1.00x body */
-  --step-1:  calc(var(--base) * var(--scale));                 /* 1.25x */
-  --step-2:  calc(var(--step-1) * var(--scale));               /* 1.5625x */
-  --step-3:  calc(var(--step-2) * var(--scale));               /* 1.9531x */
-  --step-4:  calc(var(--step-3) * var(--scale));               /* 2.4414x */
+  --step-0:  calc(var(--base) * 1.25);
+  --step-1:  calc(var(--base) * 1.4);
+  --step-2:  calc(var(--step-1) * 1.4);
+  --step-3:  calc(var(--step-2) * 1.4);
+  --step-4:  calc(var(--step-3) * 1.7);
 }
 
 /* On mobile, set ONE number (the base) and everything scales automatically */
@@ -152,6 +150,9 @@ body {
   margin-bottom: 5rem;
   max-width: 50rem;
   font-size: var(--step-0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .post-meta {
@@ -179,22 +180,27 @@ body {
   font-size: var(--step-3);
   line-height: 1.2;
 }
+
 .post-content h2 {
   margin: 1.875rem 0 0.9375rem; /* 30 0 15 */
   font-size: var(--step-2);
   line-height: 1.3;
+  width: 100%;
 }
+
 .post-content h3 {
   margin: 1.5625rem 0 0.625rem; /* 25 0 10 */
   font-size: var(--step-1);
   line-height: 1.3;
+  width: 100%;
 }
 
 .post-content p {
   margin-bottom: 1.25rem; /* 20 */
   line-height: 1.6;
-  font-size: var(--step-1); /* was 20px */
+  font-size: var(--step-0);
   font-family: Monaco, monospace;
+  width: 100%;
 }
 
 .post-content a { color: #000; text-decoration: underline; }
@@ -206,7 +212,6 @@ body {
   max-width: 100%;
   max-height: 25rem; /* 400px */
   border-radius: 0.5rem; /* 8px */
-  box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,.1); /* 4px 8px */
   display: block;
   margin-left: auto;
   margin-right: auto;
@@ -286,6 +291,17 @@ body {
     </header>
 
     <main class="posts" id="posts-container">
+
+        <a href="posts/floating-point-maths-made-simple.html" class="post-link">
+            <span class="post-hover-gif" aria-hidden="true"></span>
+            <div class="post">
+                <div class="post-title">
+                    Floating point maths made simple
+                </div>
+                <div class="post-date">2025-09-02</div>
+            </div>
+        </a>
+        
 
         <a href="posts/why-how.html" class="post-link">
             <span class="post-hover-gif" aria-hidden="true"></span>

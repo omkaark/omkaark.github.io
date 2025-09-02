@@ -1,4 +1,25 @@
-/* ---------- TYPOGRAPHY SYSTEM (rem/em only) ---------- */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
+            <title>Floating point maths made simple - Omkaar Kamath</title>
+            <meta name="description" content="Floating point maths made simple - Personal blog post">
+            <meta property="og:title" content="Floating point maths made simple - Omkaar Kamath">
+            <meta property="og:description" content="Floating point maths made simple - Personal blog post">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/floating-point-maths-made-simple.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="Floating point maths made simple - Omkaar Kamath">
+            <meta name="twitter:description" content="Floating point maths made simple - Personal blog post">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+        
+
+    <style>
+    /* ---------- TYPOGRAPHY SYSTEM (rem/em only) ---------- */
 :root {
   /* One knob to rule them all. Change this in media query to scale everything. */
   --base: 1rem;           /* 1rem = browser default (usually 16px) */
@@ -255,3 +276,77 @@ body {
     opacity: 0;
   }
 }
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
+        <div>
+            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
+            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
+            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
+        </div>
+    </header>
+
+    
+    <main class="post-content">
+        <h1>Floating Point math</h1>
+<p>I wanted to write about different floating point formats. I am omitting float64, MXFP6, MXFP4 and NVFP4 for this post.</p>
+<p><img src="/Users/omkaarwork/Desktop/projects/personal-website/public/3-float-math/floats.png" alt="Different float formats" /></p>
+<h3>What do mantissa and exponent bits represent?</h3>
+<p>The sign bit is as in <code>int</code>, 1 is negative and 0 is positive.</p>
+<p>Exponents represents an offset binary number. To calculate the real exponent, calculate <code>exponent - bias</code>. The bias value is 127 for f32/bf16 and 15 for f16.</p>
+<p>Mantissa represents the fractional part in binary notation with an implicit leading 1 (add 1 to result). Each mantissa bit represents a negative power of 2, so: <br />
+<code>1st bit: 2^-1 = 0.5</code> <br />
+<code>2nd bit: 2^-2 = 0.25</code> <br />
+<code>3rd bit: 2^-3 = 0.125</code> <br />
+...</p>
+<p>Now, say <code>10000000</code> is our 8-bit mantissa, it translates to <code>1 + 0.5 = 1.5</code> in base10.</p>
+<p>Explore further with the calculator below.</p>
+<iframe 
+  src="/Users/omkaarwork/Desktop/projects/personal-website/public/3-float-math/calculator.html" 
+  width="1100" 
+  height="250" 
+  frameborder="0"
+  style="@media(max-width: 600px){body {display: none;}}"
+>
+</iframe>
+
+<p><br/></p>
+<h3>Float32</h3>
+<p>This was the default format for ML. Great support across hardware vendors. f32 has about 7 digits of precision, anything beyond that is usually wrong. The only problem is it's memory intensive, do we really need 8 exponent and 23 mantissa bits?</p>
+<h3>Float16</h3>
+<p>Turns out, no! Float16 hardware support is good but turns out cutting down exponent bits really hurt algorithmic performance of ML models. f16 has about 3 digits of precision.</p>
+<h3>Bfloat16</h3>
+<p>Enter BF16, with the same 8 exponent bits as float 32 with only 7 mantissa bits. Most new models released on huggingface are now primarily bf16. Hardware + Software support for bf16 is great, making it an instant industry standard. bf16 has about 3 digits of precision too. I'll quote google to explain why bf16 is preferred.</p>
+<blockquote cite="https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus">
+Based on our years of experience training and deploying a wide variety of neural networks across Google’s products and services, we knew when we designed Cloud TPUs that neural networks are far more sensitive to the size of the exponent than that of the mantissa. To ensure identical behavior for underflows, overflows, and NaNs, bfloat16 has the same exponent size as FP32. However, bfloat16 handles denormals differently from FP32: it flushes them to zero. Unlike FP16, which typically requires special handling via techniques such as loss scaling [Mic 17], BF16 comes close to being a drop-in replacement for FP32 when training and running deep neural networks.
+</blockquote>
+
+<h3>Float8</h3>
+<p>fp8 is getting more common for inference, flash-attention-3 already has an fp8 implementation.</p>
+<h3>Get mathing</h3>
+<p>Checkout these calculators to add and multiply on float16 values.</p>
+<iframe 
+  src="/Users/omkaarwork/Desktop/projects/personal-website/public/3-float-math/float-add.html" 
+  width="840" 
+  height="320" 
+  frameborder="0">
+</iframe>
+
+<p><br/></p>
+<iframe 
+  src="/Users/omkaarwork/Desktop/projects/personal-website/public/3-float-math/float-mul.html" 
+  width="840" 
+  height="320" 
+  frameborder="0">
+</iframe>
+
+<p>My goal was to write a small blog and cover surface-level details for now. To learn more, I recommend reading <a href="https://jvns.ca/blog/2023/01/13/examples-of-floating-point-problems/#how-does-floating-point-work">this blog</a> by the incredible Julia Evans.</p>
+
+    </main>
+    
+</body>
+</html>
