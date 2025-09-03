@@ -3,11 +3,15 @@
     "date": "2025-08-21"
 }, {
     "name": "Why >> How",
+    "image": "https://cdn.britannica.com/65/216665-050-A83A782E/Sisyphus-Titian-1548-49-Prado-Museum-Madrid.jpg",
     "date": "2025-08-22"
 }, {
     "name": "Floating point maths made simple",
+    "image": "3-float-math/floats.png",
     "date": "2025-09-02"
 }, {
     "name": "The Illustrated LFM-2: Liquid AI",
+    "image": "4-lfm/lfm2.png",
+    "description": "An illustrated guide to LFM-2, a hybrid model from Liquid AI.",
     "date": "2025-09-03"
 }]

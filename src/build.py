@@ -90,7 +90,7 @@ def get_css():
     
     return content
 
-def get_head_tags(name: str = 'index', image_name = 'omkaark.jpeg'):
+def get_head_tags(name: str, image_url: str, description: str):
     """Get head tags for SEO"""
     if name == 'index':
         head_tags = f'''
@@ -101,26 +101,26 @@ def get_head_tags(name: str = 'index', image_name = 'omkaark.jpeg'):
             <meta property="og:description" content="These are all my thoughts that I want google and chatgpt to index.">
             <meta property="og:type" content="website">
             <meta property="og:url" content="https://omkaark.com">
-            <meta property="og:image" content="{get_image_link(image_name)}">
+            <meta property="og:image" content="{image_url}">
             <meta name="twitter:card" content="summary_large_image">
             <meta name="twitter:title" content="Omkaar's Recipes">
             <meta name="twitter:description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta name="twitter:image" content="{get_image_link(image_name)}">
+            <meta name="twitter:image" content="{image_url}">
         '''
     else:
         head_tags = f'''
             <link rel="icon" type="image/x-icon" href="{get_image_link('compass.jpg')}">
             <title>{name} - Omkaar Kamath</title>
-            <meta name="description" content="{name} - Personal blog post">
+            <meta name="description" content="{description}">
             <meta property="og:title" content="{name} - Omkaar Kamath">
-            <meta property="og:description" content="{name} - Personal blog post">
+            <meta property="og:description" content="{description}">
             <meta property="og:type" content="article">
             <meta property="og:url" content="https://omkaark.com/posts/{slugify(name)}.html">
-            <meta property="og:image" content="{get_image_link(image_name)}">
+            <meta property="og:image" content="{image_url}">
             <meta name="twitter:card" content="summary_large_image">
             <meta name="twitter:title" content="{name} - Omkaar Kamath">
-            <meta name="twitter:description" content="{name} - Personal blog post">
-            <meta name="twitter:image" content="{get_image_link(image_name)}">
+            <meta name="twitter:description" content="{description}">
+            <meta name="twitter:image" content="{image_url}">
         '''
     return head_tags
 
@@ -134,7 +134,7 @@ def build_index_page(posts):
     index_html = template.replace('/* STYLE */', css)
 
     # Replace SEO meta tags
-    head_tags = get_head_tags()
+    head_tags = get_head_tags('index', image_url=get_image_link('omkaark.jpeg'))
     index_html = index_html.replace('<!-- SEO -->', head_tags)
 
     # Replace content with posts
@@ -171,7 +171,10 @@ def build_post_page(idx, post, css):
     index_html = template.replace('/* STYLE */', css)
 
     # Replace SEO meta tags
-    head_tags = get_head_tags(post['name'], image_name=post.get('image', 'omkaark.jpeg'))
+    image_url: str = post.get('image', 'omkaark.jpeg')
+    image_url = image_url if image_url.startswith('http') else get_image_link(image_url)
+    description = post.get('description', f'{post["name"]} - Personal blog post')
+    head_tags = get_head_tags(post['name'], image_url=image_url, description=description)
     index_html = index_html.replace('<!-- SEO -->', head_tags)
 
     # Write post content
