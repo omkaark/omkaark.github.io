@@ -90,8 +90,9 @@ def get_css():
     
     return content
 
-def get_head_tags(name: str, image_url: str, description: str):
+def get_head_tags(name: str, image_url: str, description: str = None, slug: str = None):
     """Get head tags for SEO"""
+    if not slug: slug = slugify(name)
     if name == 'index':
         head_tags = f'''
             <link rel="icon" type="image/x-icon" href="{get_image_link('compass.jpg')}">
@@ -115,7 +116,7 @@ def get_head_tags(name: str, image_url: str, description: str):
             <meta property="og:title" content="{name} - Omkaar Kamath">
             <meta property="og:description" content="{description}">
             <meta property="og:type" content="article">
-            <meta property="og:url" content="https://omkaark.com/posts/{slugify(name)}.html">
+            <meta property="og:url" content="https://omkaark.com/posts/{slug}.html">
             <meta property="og:image" content="{image_url}">
             <meta name="twitter:card" content="summary_large_image">
             <meta name="twitter:title" content="{name} - Omkaar Kamath">
@@ -140,7 +141,7 @@ def build_index_page(posts):
     # Replace content with posts
     posts_html = ['<main class="posts" id="posts-container">']
     for post in reversed(posts):
-        slug = slugify(post['name'])
+        slug = post.get('slug', slugify(post['name']))
         posts_html.append(f'''
         <a href="posts/{slug}.html" class="post-link">
             <span class="post-hover-gif" aria-hidden="true"></span>
@@ -161,7 +162,7 @@ def build_index_page(posts):
 
 def build_post_page(idx, post, css):
     """Build individual post page"""
-    slug = slugify(post['name'])
+    slug = post.get('slug', slugify(post['name']))
 
     with open('template.html', 'r', encoding='utf-8') as f:
         template = f.read()
@@ -174,7 +175,8 @@ def build_post_page(idx, post, css):
     image_url: str = post.get('image', 'omkaark.jpeg')
     image_url = image_url if image_url.startswith('http') else get_image_link(image_url)
     description = post.get('description', f'{post["name"]} - Personal blog post')
-    head_tags = get_head_tags(post['name'], image_url=image_url, description=description)
+    slug = post.get('slug', slugify(post['name']))
+    head_tags = get_head_tags(post['name'], image_url=image_url, description=description, slug=slug)
     index_html = index_html.replace('<!-- SEO -->', head_tags)
 
     # Write post content
@@ -214,7 +216,7 @@ def generate_sitemap(posts, output_directory):
     
     # Add post pages
     for post in posts:
-        slug = slugify(post['name'])
+        slug = post.get('slug', slugify(post['name']))
         post_date = post['date']  # Format: YYYY-MM-DD
         
         sitemap_content.append('  <url>')
@@ -279,7 +281,7 @@ def build_site():
         try:
             post_html = build_post_page(idx, post, css)
             if post_html:
-                slug = slugify(post['name'])
+                slug = post.get('slug', slugify(post['name']))
                 with open(posts_dir / f'{slug}.html', 'w', encoding='utf-8') as f:
                     f.write(post_html)
                 print(f"-> Built posts/{slug}.html")
