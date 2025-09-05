@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
             <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
-            <title>Omkaar's Recipes</title>
-            <meta name="description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta property="og:title" content="Omkaar's Recipes">
-            <meta property="og:description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta property="og:type" content="website">
-            <meta property="og:url" content="https://omkaark.com">
-            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+            <title>So, why is attention quadratic? - Omkaar Kamath</title>
+            <meta name="description" content="So, why is attention quadratic? - Personal blog post">
+            <meta property="og:title" content="So, why is attention quadratic? - Omkaar Kamath">
+            <meta property="og:description" content="So, why is attention quadratic? - Personal blog post">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/so-why-is-attention-quadratic.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/5-quadratic-attention/qkt.png?raw=true">
             <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:title" content="Omkaar's Recipes">
-            <meta name="twitter:description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+            <meta name="twitter:title" content="So, why is attention quadratic? - Omkaar Kamath">
+            <meta name="twitter:description" content="So, why is attention quadratic? - Personal blog post">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/5-quadratic-attention/qkt.png?raw=true">
         
 
     <style>
@@ -290,62 +290,24 @@ body {
         </div>
     </header>
 
-    <main class="posts" id="posts-container">
+    
+    <main class="post-content">
+        <h1>So, why is attention quadratic?</h1>
+<p>We hear about attention being unscalable because it's scales quadratically. When I was a beginner in ML, I used to wonder what this was all about.</p>
+<p>What is quadratic about it? why? This simple explanation is catered towards non-AI technical folks with some lin alg knowledge. Also, I am assuming this is plain attention (no multi-heads), batch=1 and no kv caching (btw rumor is anthropic did not have kv caching in it's early days) for simplicity of explanation.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/5-quadratic-attention/attention.png?raw=true" alt="Attention" /></p>
+<p>The diagram above shows where attention happens in the decoder block &amp; the formula for attention. Look at the <code>Q @ Kᵀ</code> part of the formula above. Q, K and V are of shape (Sequence_length, Hidden_dim), when Q and K transpose are matmul'd they result in a matrix of shape (Sequence_length, Sequence_length).</p>
+<p>During inference, while the sequence increases by 1 for each token, both time to compute and memory to store the result is O(L²). So, when</p>
+<ul>
+<li>sequence length = 1, <code>Q @ Kᵀ</code> = (1, 1) = 1 multiply</li>
+<li>sequence length = 2, <code>Q @ Kᵀ</code> = (2, 2) = 4 multiplies</li>
+<li>sequence length = 3, <code>Q @ Kᵀ</code> = (3, 3) = 9 multiplies</li>
+<li>... like in the diagram</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/5-quadratic-attention/qkt.png?raw=true" alt="QKT" /></p>
+<p>Hope this makes everything clear.</p>
 
-        <a href="posts/so-why-is-attention-quadratic.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    So, why is attention quadratic?
-                </div>
-                <div class="post-date">2025-09-05</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/the-illustrated-lfm-2-liquid-ai.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    The Illustrated LFM-2: Liquid AI
-                </div>
-                <div class="post-date">2025-09-03</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/fp.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Floating point maths made simple
-                </div>
-                <div class="post-date">2025-09-02</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/why-how.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Why >> How
-                </div>
-                <div class="post-date">2025-08-22</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/why-i-made-this-website.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Why I made this website
-                </div>
-                <div class="post-date">2025-08-21</div>
-            </div>
-        </a>
-        
-</main>
+    </main>
+    
 </body>
 </html>

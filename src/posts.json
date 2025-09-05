@@ -15,4 +15,8 @@
     "image": "4-lfm/lfm2.png",
     "description": "An illustrated guide to LFM-2, a hybrid model from Liquid AI.",
     "date": "2025-09-03"
+}, {
+    "name": "So, why is attention quadratic?",
+    "image": "5-quadratic-attention/qkt.png",
+    "date": "2025-09-05"
 }]
