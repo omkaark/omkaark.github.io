@@ -25,4 +25,10 @@
     "description": "An illustrated guide to FastVLM, a multimodal model by Apple that has some key innovations.",
     "slug": "fastvlm",
     "date": "2025-09-08"
+}, {
+    "name": "Decisive guide on Speculative Decoding",
+    "image": "7-spec-decode/medusa.png",
+    "description": "Speculative decoding is a common approach to making inference faster. This guide shows the 4 different approaches with illustrations and examples.",
+    "slug": "speculative-decoding",
+    "date": "2025-09-12"
 }]

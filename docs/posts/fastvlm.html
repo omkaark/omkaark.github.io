@@ -221,11 +221,13 @@ body {
 .post-content img {
   margin: 1.25rem 0;
   max-width: 100%;
-  max-height: 25rem; /* 400px */
+  max-height: 50rem;
   border-radius: 0.5rem; /* 8px */
   display: block;
   margin-left: auto;
   margin-right: auto;
+  border: 1px #ccc dashed;
+  padding: 10px;
 }
 
 /* ---------- INLINE CODE ---------- */
@@ -315,7 +317,7 @@ body {
 <p>My <a href="https://github.com/omkaark/models-from-scratch/blob/main/apple-fastvlm/fastvlm.ipynb">code</a> has been segmented in the same sections as the image above which should make it easier to follow.</p>
 <h2>Vision Encoder</h2>
 <p>The vision encoder can be broken up into a few repeated blocks. Different colors in the ViT architecture below represent different blocks.</p>
-<p><img style="max-height: 40rem !important;" src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/vit.png?raw=true" alt="Add later" /></p>
+<p><img style="max-height: 40rem !important;" src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/vit.png?raw=true" alt="Vision transformer architecture: preprocessing, stem, patch embeddings, positional embeddings, MobileOne head" /></p>
 <h3>Preprocessing</h3>
 <p>Preprocessing is simple, standardization across channel and cropping the image to (1024, 1024). The following code comes from my <a href="https://github.com/omkaark/models-from-scratch/blob/main/apple-fastvlm/fastvlm.ipynb">implementation</a>.</p>
 <pre><code>image = Image.open('./image.jpg').convert(&quot;RGB&quot;)
@@ -332,7 +334,7 @@ img_tensor = torch.tensor(CLIPImageProcessor(
 <h3>Stem</h3>
 <p>The stem = 3×3 Conv + GeLU + 3×3 Depth-wise Conv + 1×1 Conv</p>
 <p>Together, they shrink resolution and boost channels: [3, 1024, 1024] --&gt; [96, 256, 256].</p>
-<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/stem.png?raw=true" alt="stem" /></p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/stem.png?raw=true" alt="Stem block for vision model: 3x3 convolution, depthwise conv, 1x1 conv, GeLU activations, feature map outputs" /></p>
 <p>Depth-wise convolutions + point-wise (1x1) convolutions are 5-10x more efficient than a standard convolution with the same kernel size. Think of the stem as a smart tokenizer.</p>
 <h3>Stage 1-5</h3>
 <p>The five stages after stem all look similar:</p>
@@ -345,17 +347,17 @@ img_tensor = torch.tensor(CLIPImageProcessor(
 <li>Each has a Patch Embed (downsampling)</li>
 </ul>
 <p>The 5 stages after stem are similar. Every stage has one Patch Embed and N blocks containing one TokenMixer (explained later) and one ConvFFN. In the first three stages, the TokenMixer is a 3×3 depth-wise conv (based on <a href="https://arxiv.org/pdf/2303.14189">RepMixer</a>). In stages 4–5, it switches to self-attention (after more downsampling). Structurally, this mirrors a transformer block: attention + MLP. Notice how TokenMixer + ConvFFN is structurally similar to the transformer decoder block (Attention + FFN).</p>
-<p><img style="max-height: 40rem !important;" src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/stages.png?raw=true" alt="Add later" /></p>
+<p><img style="max-height: 40rem !important;" src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/stages.png?raw=true" alt="ConvFFN and token mixer block: 7x7 depthwise conv, batch norm, 1x1 convs, GeLU activation" /></p>
 <p>The above is how one stage looks like. Stage 5 does not have a PatchEmbed layer.</p>
 <p>Note: before stages 4 and 5, they introduce conditional positional embedding layer (7×7 depth-wise conv) to inject position information.</p>
 <h4>&gt; Receptive field and Token mixers</h4>
 <p>A receptive field is how much of the original image a feature can see. Therefore, convolutions inherently have local receptive fields (as big as the conv kernel) while self-attention (with no mask) is global. Because self-attention is an expensive operation, paper chooses to run the cheaper convolution token-mixer and downsample for the first three layers. Then, once the representation has been downsampled enough (8x in this case, [96, 256, 256] --&gt; [768, 32, 32]), it uses attention as a token mixture to increase receptive field while keeping compute overhead low.</p>
 <h3>ViT head</h3>
 <p>After the 5 stages, the encoder has a head that pools multi-scale features into final per-token embeddings the projector will consume.</p>
-<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/head.png?raw=true" alt="stem" /></p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/head.png?raw=true" alt="Convolutional attention block with depthwise conv, pooling, reduce/expand conv, ReLU, Sigmoid, GeLU" /></p>
 <h2>Projector</h2>
 <p>Think of the projection (or “connector”) layer as a translator between the ViT’s embedding space and the LLM’s embedding space. This is a simple MLP, but surprisingly powerful: train just this connector well and you can get a vision encoder to play nicely with any LLM.</p>
-<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/projector.png?raw=true" alt="stem" /></p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/projector.png?raw=true" alt="Vision transformer projector: flatten and transpose, linear layers with GeLU activation, tensor shape transformations" /></p>
 <h2>LLM</h2>
 <p>This part is a standard LLM. Before tokenization, we look for <code>&lt;image&gt;</code> in the prompt, tokenize and embed everything before and after, then add the image embeddings in between, and finally pass it through the LLM as is normally done in auto-regressive text gen.</p>
 <h2>Where does the efficiency come from?</h2>
@@ -363,7 +365,7 @@ img_tensor = torch.tensor(CLIPImageProcessor(
 <p>Given FastViT-HD produces &gt;4x fewer tokens for a high-resolution image compared to other ViTs, LLM prefill time is relatively much lower.</p>
 <p>Performing convolutions early for token-mixing and attention when representation is smaller cuts compute while upholding quality.</p>
 <p>The convolution paths (stem, patch-embed, ConvFFN, RepMixer) use batchnorm which can be fused into a single convolution at inference. However, batchnorm might not generalize too well on out-of-distribution data.</p>
-<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/efficient.png?raw=true" alt="stem" /></p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/6-vit/efficient.png?raw=true" alt="Efficiency gains" /></p>
 <p>As shown in the above graph from the FastVLM paper, for 1024x1024 resolution, FastVIT-HD has fast TTFT and performs well on evals.</p>
 <h2>P.S.</h2>
 <p>Some out of scope points I wanted to mention:</p>
