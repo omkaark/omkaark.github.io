@@ -315,8 +315,8 @@ body {
 <p>This <a href="https://arxiv.org/pdf/2211.17192">paper</a> (Leviathan et al.) gave birth to SD and our first method works off it -&gt;</p>
 <p><img src="https://storage.googleapis.com/gweb-research2023-media/media/SpeculativeDecoding-1-Illustration.mp4" alt="Google's Speculative Decoding Illustration" /></p>
 <h3>Draft-And-Verify approach</h3>
-<p>The draft model is a smaller version of the target model that we want to run inference on. Ex. Llama3-3b can be the draft model for Llama3-70b. The idea is simple, draft model generates n tokens. We feed n tokens into target model which generates only 1 token. With simple checks against the logits produced, we accept or reject the produced tokens.</p>
-<p>The caveat here is generation is such that speculative decoded output distribution is same as the target model's distribution.</p>
+<p>The draft model is a smaller version of the target model that we want to run inference on. Ex. Llama3-3b can be the draft model for Llama3-70b. The idea is simple, draft model generates <code>n</code> tokens. We feed the <code>n</code> tokens into target model which produces logits for previous tokens + one output 1 token. With simple checks against draft's vs target's logits produced, we accept or reject the produced tokens.</p>
+<p>The caveat here is, during generation, speculative decoded output distribution is same as the target model's output distribution.</p>
 <p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/7-spec-decode/draft-and-verify.png?raw=true" alt="Speculative decoding diagram: generate 4 draft tokens, verify with target model, accept or reject tokens" /></p>
 <p>For demonstration, I implemented Qwen2-1.5B as target and Qwen2-0.5B as the draft.</p>
 <p>I recommend reading my <a href="https://github.com/omkaark/speculative-decoding/blob/8c4b9c820bd0e6971d3bd3617f3d27c17e0d4400/qwen-draft-and-verify.py#L169">implementation code</a> (feel free to disregard my Qwen2 class). This is the pseudocode for the process:</p>
@@ -362,7 +362,6 @@ body {
 <h3>Auxiliary Heads approach</h3>
 <p>The <a href="https://arxiv.org/pdf/2401.10774">Medusa</a> paper describes adding <code>k</code> decoding heads which take the last hidden state's output as their inputs and output the hidden representation for the k+1 token. The diagram below should make it clear.</p>
 <p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/7-spec-decode/medusa.png?verify=True" alt="Medusa decoding architecture with multiple linear heads predicting tokens in parallel from transformer outputs" /></p>
-<p>Medusa heads are trained by freezing the pretrained LLM (referred to as backbone) and running cross entropy on predicted kth token vs actual.</p>
 <h3>Feature Re-use approach</h3>
 <p><a href="https://arxiv.org/html/2503.01840v1?utm_source=chatgpt.com">Eagle-3</a> is a relatively new paper (builds on top of EAGLE and EAGLE-2). I like their intuition... EAGLE-3 drops feature regression (predicting next token's features through regression) and does direct token prediction using a fused low/mid/high layer feature vector from the target. They report a 6.5× total speedup in their benchmarks. The following illustration is from the paper linked above.</p>
 <p><img src="https://arxiv.org/html/2503.01840v1/x7.png" alt="Eagle-3" /></p>
