@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
+            <title>Cut Cross Entropy from first principles - Omkaar Kamath</title>
+            <meta name="description" content="Cross Entropy Loss is used in all language model training recipes. The old way of doing things required materializing the full logits, whereas Apple's Cut Cross Entropy eliminates that contributing to massive global memory savings.">
+            <meta property="og:title" content="Cut Cross Entropy from first principles - Omkaar Kamath">
+            <meta property="og:description" content="Cross Entropy Loss is used in all language model training recipes. The old way of doing things required materializing the full logits, whereas Apple's Cut Cross Entropy eliminates that contributing to massive global memory savings.">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/cce.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/cce.png?raw=true">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="Cut Cross Entropy from first principles - Omkaar Kamath">
+            <meta name="twitter:description" content="Cross Entropy Loss is used in all language model training recipes. The old way of doing things required materializing the full logits, whereas Apple's Cut Cross Entropy eliminates that contributing to massive global memory savings.">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/cce.png?raw=true">
+        
+
+    <style>
+    /* ---------- TYPOGRAPHY SYSTEM (rem/em only) ---------- */
+:root {
+  /* One knob to rule them all. Change this in media query to scale everything. */
+  --base: 1rem;           /* 1rem = browser default (usually 16px) */
+  --scale: 1.25;          /* modular scale ratio: Major Third */
+
+  /* Precomputed steps off the base using the scale (no px anywhere) */
+  --step-0:  calc(var(--base) * 1.25);
+  --step-1:  calc(var(--base) * 1.4);
+  --step-2:  calc(var(--step-1) * 1.4);
+  --step-3:  calc(var(--step-2) * 1.4);
+  --step-4:  calc(var(--step-3) * 1.7);
+}
+
+/* On mobile, set ONE number (the base) and everything scales automatically */
+@media (max-width: 768px) {
+  :root {
+    --base: 0.95rem;   /* tighten all text ~5%. change to 0.90rem, 1.05rem, etc */
+  }
+}
+
+/* ---------- GLOBAL ---------- */
+html { font-size: 100%; } /* keep user/browser zoom respectful */
+body {
+  font-family: 'Courier New', 'Monaco', monospace;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: #000;
+  background: #fff;
+  width: 80vw;
+  max-width: 50rem; /* 800px -> 50rem for consistency */
+  margin: 0 auto;
+  padding: 2.5rem 0; /* 40px -> 2.5rem */
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  border-bottom: 0.125rem solid #000; /* 2px -> rem */
+  padding-bottom: 1.25rem;           /* 20px -> 1.25rem */
+}
+
+.name {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: 0.125rem; /* 2px -> rem */
+  text-transform: uppercase;
+}
+
+/* ---------- INDEX / POSTS LIST ---------- */
+.posts {
+  margin-bottom: 5rem;
+  font-size: var(--step-1);
+}
+
+.post {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem; /* 12px 20px */
+  margin: 1.25rem 0;       /* 20px */
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.post::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -100%;
+  width: 100%;
+  background: #FFFDD0;
+  transition: left 0.15s ease;
+  z-index: -1;
+}
+.post:hover::before { left: 0; }
+
+.post-hover-gif {
+  position: absolute;
+  height: 4rem;
+  width: 40rem;
+  background-image: url("https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/run.gif?raw=true");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: right;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 120ms ease-in;
+}
+
+.post-link:hover .post-hover-gif { 
+  opacity: 1; 
+}
+
+.post-title { flex: 1; margin-right: 1.25rem; }
+.post-link { color: #000; text-decoration: none; font-weight: 400; position: relative; }
+
+.post-date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+/* ---------- FOOTER ---------- */
+.footer {
+  border-top: 0.125rem solid #000;
+  padding-top: 1.25rem;
+  display: flex;
+  gap: 1.875rem; /* 30px */
+}
+
+.social-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem; /* 1px */
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+.social-link:hover { text-decoration: underline; }
+
+/* ---------- POST PAGE ---------- */
+.post-content {
+  margin-bottom: 5rem;
+  max-width: 50rem;
+  font-size: var(--step-0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 0.0625rem solid #000; /* 1px */
+}
+
+.back-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem;
+  font-weight: 700;
+  font-size: var(--step--1);
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Headings on the scale */
+.post-content h1 {
+  margin: 1.875rem 0 1.25rem; /* 30 0 20 */
+  font-size: var(--step-3);
+  line-height: 1.2;
+}
+
+.post-content h2 {
+  margin: 1.875rem 0 0.9375rem; /* 30 0 15 */
+  font-size: var(--step-2);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h3 {
+  margin: 1.5625rem 0 0.625rem; /* 25 0 10 */
+  font-size: var(--step-1);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h4 {
+  margin: 1.425rem 0 0.425rem; /* 25 0 10 */
+  font-size: var(--step-0);
+  line-height: 1.25;
+  width: 100%;
+}
+
+.post-content ul {
+  width: 90%;
+}
+
+.post-content p {
+  margin-bottom: 1.25rem; /* 20 */
+  line-height: 1.6;
+  font-size: var(--step-0);
+  font-family: Monaco, monospace;
+  width: 100%;
+}
+
+.post-content a { color: #000; text-decoration: underline; }
+.post-content a:hover { background: #f5f5dc; }
+
+/* Images unaffected by font scale, but spacings use rem for consistency */
+.post-content img {
+  margin: 1.25rem 0;
+  max-width: 100%;
+  max-height: 50rem;
+  border-radius: 0.5rem; /* 8px */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px #ccc dashed;
+  padding: 10px;
+}
+
+/* ---------- INLINE CODE ---------- */
+.post-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--step-0);
+  background: rgba(127,127,127,.12);
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  padding: .15em .4em;   /* em ties to current font-size */
+  border-radius: .35em;
+  word-break: break-word;
+}
+
+/* ---------- CODE BLOCKS ---------- */
+.post-content pre {
+  margin: 1.25rem 0;
+  padding: 0.875rem 1rem; /* 14px 16px */
+  border-radius: 0.75rem; /* 12px */
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  background: #f7f7f9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  tab-size: 2;
+  font-size: var(--step-0); /* control block base size */
+  line-height: 1.55;
+  width: 100%;
+}
+.post-content pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;   /* inherit from pre; keep scale intact */
+  line-height: 1.55;
+  display: block;
+  white-space: pre;
+}
+
+/* ---------- RESPONSIVE LAYOUT ONLY (typography scales via --base) ---------- */
+@media (max-width: 768px) {
+  body { width: 95vw; padding: 1.25rem 0; }
+
+  .header { flex-direction: column; justify-items: center; }
+
+  .post {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.5rem 0.9375rem;
+    margin: 1.25rem 0.625rem;
+    background: #FFFDD0;
+  }
+  .post::before { display: none; }
+
+  .post-title { margin-right: 0; margin-bottom: 0.25rem; }
+
+  .footer { flex-wrap: wrap; gap: 0.9375rem; }
+
+  .post-meta { flex-direction: column; align-items: flex-start; gap: 0.625rem; }
+
+  .post-content { margin: 0 0.625rem; }
+
+  .post-link:hover .post-hover-gif { 
+    opacity: 0;
+  }
+}
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
+        <div>
+            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
+            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
+            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
+        </div>
+    </header>
+
+    
+    <main class="post-content">
+        <h1>Cut Cross Entropy from first principles</h1>
+<p>If you’ve ever tried training a 70B model and watched your GPU memory bar hit 99%, you’ve already met the enemy: Cross Entropy Loss. It’s silently eating half your VRAM, and Apple’s new <a href="https://arxiv.org/html/2411.09009v1">Cut Cross Entropy (CCE)</a> paper could help out.</p>
+<p>Cross Entropy Loss is commonly calculated by materializing all the logits, which, given the large vocab size and number of batch tokens, leads to exploding VRAM usage. The green pie segment shown in the image below is proportion of memory used by the Cross Entropy loss calculation... notice how with CCE green pie segments seemingly vanish.</p>
+<p>Following is an image from Apple's paper showing ratio of memory consumed by different parts of a training run with and without CCE.
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/memory-savings.png?raw=true" alt="Memory savings in CCE" /></p>
+<h2>What's up with plain ol' Cross Entropy?</h2>
+<p><img style="max-height: 20rem !important;" src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/logits.png?raw=true" alt="Logits" /></p>
+<p>The CE Loss formula = <code>-log(prob(Correct Token))</code></p>
+<p>Probability of a token comes from softmax over the vocab dimension of the logits tensor.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/cross-entropy-derive.jpg?raw=true" alt="Deriving the formula of Cross Entropy loss" /></p>
+<p>Putting all this together and a few math tricks, we get <code>loss = -correct_token + LSE</code></p>
+<p>The most naive form of Cross Entropy loss calculation would be:</p>
+<pre><code>logits = E @ C.T # &lt;- Total size of tensor: Seq Len * Vocab Size * 4
+probs = softmax(logits, dim=-1)  # &lt;- Total size of tensor: Seq Len * Vocab Size * 4
+loss = -log(probs[:, target_tokens])
+</code></pre>
+<p>That would need too much memory, but thankfully, we already do something better. We refactor the formula with some maths (worked out below). Right now, CE loss is calculated as follows:</p>
+<pre><code>logits = E @ C.T # &lt;- Total size of tensor: Seq Len * Vocab Size * 4
+LSE = torch.logsumexp(logits, dim=-1) # &lt;- Total size of tensor: Seq Len * 4
+target_logits = logits[:, target_tokens] # &lt;- Total size of tensor: Seq Len * 4
+loss = -target_logits + LSE
+</code></pre>
+<p>The problem here is that we still waste a lot of memory materializing the logits. Training on larger sequence lengths, batch sizes, and vocabulary sizes results in a memory explosion.</p>
+<p>To give you an idea of the wastage, let's imagine you are training a Llama 70B (vocab_size = 128,256) with batch_size = 128 (assume no grad accum) and sequence length = 8,192. The logits size in bytes would be (128,256 x 128 x 8192 x 4) = <strong>501GB</strong> to store FP32 logits... Half a terabyte for one forward pass. It’s such a big waste that I suspect large labs have already solved this internally.</p>
+<h2>Cut Cross Entropy</h2>
+<p>The question is how to calculate log(LSE) without materializing the full logit table. Simple: split the work into SRAM-sized chunks and compute only the LogSumExp's on the fly. DSLs like <a href="https://triton-lang.org/main/index.html">Triton</a> are purpose-built for writing efficient kernels based on this principle.</p>
+<p>To calculate <code>loss = -target_logits + log_sum_exp</code> without materializing full logits, we need two kernels: Indexed Matmul which calculates <code>target_logits = hidden @ lm_head[target_ids]</code> and LogSumExp <code>log_sum_exp = log(∑exp(hidden @ lm_head))</code></p>
+<p>You can check out my triton implementations for the forward kernels here: <a href="https://github.com/omkaark/cut-cross-entropy-simplified/blob/main/ce_fwd.py#L23">IndexedMatmul</a> and <a href="https://github.com/omkaark/cut-cross-entropy-simplified/blob/main/ce_fwd.py#L59">LogSumExp</a>. Below is the performance compared to vanilla PyTorch (torch compile roughly the same perf. as vanilla PyTorch.)
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/bench-results.png?raw=true" alt="Triton vs PyTorch Implementation" /></p>
+<p>While the forward kernels are much faster and more memory-efficient, their solution is simple. What happens to the backward pass?</p>
+<h3>Backward Pass</h3>
+<p>So far, we’ve handled forward passes, but training means we also need gradients. Is that possible without the full logits? ofc.</p>
+<p>This is my handwritten derivation for the backward pass and the derivative of the loss with respect to activations and the LM head.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/bwd-derivation.jpg?raw=true" alt="Backward formulas Derivation" /></p>
+<p><a href="https://indii.org/blog/gradients-of-softmax-and-logsumexp/">Good blog</a> for math behind derivative of LogSumExp being Softmax.</p>
+<p>Backward passes are a bit more complicated in general. Apple used some smart tricks to compute them faster such as:</p>
+<ul>
+<li><strong>LSE Re-use</strong>: Instead of calculating softmax from scratch, they use the already materialized LSE (shown in backward pass algorithm below). softmax = exp(logit - LSE)</li>
+<li><strong>Gradient Filtering</strong>: Any softmax value along the vocab dim less than pre-set <code>ɛ</code> will be ignored in gradient calculation. In practice (triton), we work on blocks of softmax values at a time, so we check if max(values) &lt; <code>ɛ</code> and if it is, set gradient of the blocks as 0. Has no effect on accuracy given <code>ɛ</code> is small (e.g. 10^-12). Funnily, this means only 0.02% of gradients need to be calculated in practice (stated by CCE paper).</li>
+<li><strong>Vocabulary Sorting</strong>: This complements gradient filtering. Wouldn't it be great if the most common vocabs are stacked at the start of the matrix? This will significantly increase blocks with softmax values &lt; <code>ɛ</code> and would result in less gradient blocks needing calculation.</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/cel-bwd.png?raw=true" alt="Cross Entropy Loss: Backwards pass" /></p>
+<p>Here is my simplified <a href="https://github.com/omkaark/cut-cross-entropy-simplified/blob/main/ce_bwd.py#L37">backward kernel</a> similar to the algorithm shown above from Apple's paper. While I didn’t implement vocabulary sorting, simply adding coarse gradient filtering improved performance from 18% to 250% of PyTorch’s speed!!!</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/bench-results-bwd.png?raw=true" alt="Triton vs PyTorch Implementation" /></p>
+<p>Note: These are not production-level kernels, I wanted to write a simpler working but fast kernel for illustration at the expense of other features. I don't like the numerical precision level I have, if I had more time, I'd try Kahan summation like in Apple's code.</p>
+<h2>End notes</h2>
+<p>We reduced memory usage along with forward AND backward computation time. Wins like this are rare. Companies offering finetuning services like Unsloth benefit a lot as they can now cut costs related to compute. This was a fun exploration, I love writing Triton.</p>
+
+    </main>
+    
+</body>
+</html>

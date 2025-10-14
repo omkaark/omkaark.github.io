@@ -31,4 +31,10 @@
     "description": "Speculative decoding is a common approach to making inference faster. This guide shows the 4 different approaches with illustrations and examples.",
     "slug": "speculative-decoding",
     "date": "2025-09-15"
+}, {
+    "name": "Cut Cross Entropy from first principles",
+    "image": "8-cce/cce.png",
+    "description": "Cross Entropy Loss is used in all language model training recipes. The old way of doing things required materializing the full logits, whereas Apple's Cut Cross Entropy eliminates that contributing to massive global memory savings.",
+    "slug": "cce",
+    "date": "2025-10-10"
 }]
