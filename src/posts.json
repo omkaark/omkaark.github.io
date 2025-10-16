@@ -37,4 +37,10 @@
     "description": "Cross Entropy Loss is used in all language model training recipes. The old way of doing things required materializing the full logits, whereas Apple's Cut Cross Entropy eliminates that contributing to massive global memory savings.",
     "slug": "cce",
     "date": "2025-10-10"
+}, {
+    "name": "Cut Cross Entropy > Torch's version? No.",
+    "image": "9-cce-impl/cce-run.png",
+    "description": "I wanted to confirm the paper's findings and it turns out, for my experiment, AdamW has better loss over time than CCE on 4k steps.",
+    "slug": "cce-experiment",
+    "date": "2025-10-16"
 }]

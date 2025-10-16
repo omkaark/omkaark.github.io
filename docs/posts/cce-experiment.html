@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
             <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
-            <title>Omkaar's Recipes</title>
-            <meta name="description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta property="og:title" content="Omkaar's Recipes">
-            <meta property="og:description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta property="og:type" content="website">
-            <meta property="og:url" content="https://omkaark.com">
-            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+            <title>Cut Cross Entropy > Torch's version? No. - Omkaar Kamath</title>
+            <meta name="description" content="I wanted to confirm the paper's findings and it turns out, for my experiment, AdamW has better loss over time than CCE on 4k steps.">
+            <meta property="og:title" content="Cut Cross Entropy > Torch's version? No. - Omkaar Kamath">
+            <meta property="og:description" content="I wanted to confirm the paper's findings and it turns out, for my experiment, AdamW has better loss over time than CCE on 4k steps.">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/cce-experiment.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/9-cce-impl/cce-run.png?raw=true">
             <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:title" content="Omkaar's Recipes">
-            <meta name="twitter:description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+            <meta name="twitter:title" content="Cut Cross Entropy > Torch's version? No. - Omkaar Kamath">
+            <meta name="twitter:description" content="I wanted to confirm the paper's findings and it turns out, for my experiment, AdamW has better loss over time than CCE on 4k steps.">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/9-cce-impl/cce-run.png?raw=true">
         
 
     <style>
@@ -304,106 +304,31 @@ body {
         </div>
     </header>
 
-    <main class="posts" id="posts-container">
+    
+    <main class="post-content">
+        <h1>Cut Cross Entropy &gt; Torch's version? No.</h1>
+<p>I just wrote about CCE and was building a test rig to train a small LLM. 4 hours after I started working on it, Karpathy released <a href="https://github.com/karpathy/nanochat">Nanochat</a>!!!</p>
+<p>I discuss implementation and results in this short post.</p>
+<h2>Implementing CCE</h2>
+<p>Apple has done a great job of making their kernels very easy to integrate and feature-rich.</p>
+<p>Karpathy's code has this for training:</p>
+<pre><code>logits = self.lm_head(x)
+logits = softcap * torch.tanh(logits / softcap) # logits softcap
+logits = logits.float() # use tf32/fp32 for logits
+loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1, reduction=loss_reduction)
+</code></pre>
+<p>CCE eliminates <code>self.lm_head(x)</code> which is very memory intensive. Implementing it is simple, we replace all the lines above with:</p>
+<pre><code>from cut_cross_entropy import linear_cross_entropy, LinearCrossEntropyImpl
+loss = linear_cross_entropy(x, self.lm_head.weight, targets, softcap=softcap, reduction=loss_reduction, ignore_index=-1, impl=LinearCrossEntropyImpl.CCE_KAHAN_FULL)
+</code></pre>
+<h2>Results</h2>
+<p>Now, I have a few variations which could have affected these results. Kahan Sum provides more numerically stable results at a small memory cost. Instead of model_depth = 20, I have model_depth = 10. I only trained over 4k steps and I train base on batch_size = 32 vs CCE with batch_size = 64 (afforded by the lower peak VRAM).</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/9-cce-impl/cce-run.png?raw=true" alt="CCE Run" /></p>
+<p>As shown above, Torch's cross entropy gives lower loss than Apple's Cut Cross Entropy. Someone verbally reported the same results to me with Liger's Chunked Cross Entropy. Note, toks/s trained did go up, but loss convergence is preferred over everything!</p>
+<h2>End Notes</h2>
+<p>If you have intuition / feedback on this or if you get this working, I'd love to hear it! If I get some time over the next few days, I'll investigate this.</p>
 
-        <a href="posts/cce-experiment.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Cut Cross Entropy > Torch's version? No.
-                </div>
-                <div class="post-date">2025-10-16</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/cce.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Cut Cross Entropy from first principles
-                </div>
-                <div class="post-date">2025-10-10</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/speculative-decoding.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Decisive guide on Speculative Decoding
-                </div>
-                <div class="post-date">2025-09-15</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/fastvlm.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    The Illustrated FastVLM: Apple
-                </div>
-                <div class="post-date">2025-09-08</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/so-why-is-attention-quadratic.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    So, why is attention quadratic?
-                </div>
-                <div class="post-date">2025-09-05</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/the-illustrated-lfm-2-liquid-ai.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    The Illustrated LFM-2: Liquid AI
-                </div>
-                <div class="post-date">2025-09-03</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/fp.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Floating point maths made simple
-                </div>
-                <div class="post-date">2025-09-02</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/why-how.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Why >> How
-                </div>
-                <div class="post-date">2025-08-22</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/why-i-made-this-website.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Why I made this website
-                </div>
-                <div class="post-date">2025-08-21</div>
-            </div>
-        </a>
-        
-</main>
+    </main>
+    
 </body>
 </html>
