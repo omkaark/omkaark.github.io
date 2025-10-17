@@ -373,6 +373,9 @@ img_tensor = torch.tensor(CLIPImageProcessor(
 <li>The architecture of the train-time and inference-time model is different. They make use of over-parameterization and then fold identities and multiple convolutions into one convolution during inference time. It's in the FastViT <a href="https://arxiv.org/abs/2303.14189">paper</a>. I am writing an explanation for this next.</li>
 <li>Training the model follows the same 2-stage training pipeline from <a href="https://arxiv.org/pdf/2310.03744">LLaVA-1.5</a>. During the first stage, only the projector is trained. In the second stage, they run SFT on the vision encoder, projector and the LLM.</li>
 </ul>
+<blockquote>
+<p>By Omkaar Kamath</p>
+</blockquote>
 
     </main>
     

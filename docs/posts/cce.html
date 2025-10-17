@@ -353,6 +353,9 @@ loss = -target_logits + LSE
 <p>Note: These are not production-level kernels, I wanted to write a simpler working but fast kernel for illustration at the expense of other features. I don't like the numerical precision level I have, if I had more time, I'd try Kahan summation like in Apple's code.</p>
 <h2>End notes</h2>
 <p>We reduced memory usage along with forward AND backward computation time. Wins like this are rare. Companies offering finetuning services like Unsloth benefit a lot as they can now cut costs related to compute. This was a fun exploration, I love writing Triton.</p>
+<blockquote>
+<p>By Omkaar Kamath</p>
+</blockquote>
 
     </main>
     
