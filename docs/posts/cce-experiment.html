@@ -307,11 +307,11 @@ body {
     
     <main class="post-content">
         <h1>Cut Cross Entropy &gt; Torch's version? No.</h1>
-<p>I just wrote about CCE and was building a test rig to train a small LLM. 4 hours after I started working on it, Karpathy released <a href="https://github.com/karpathy/nanochat">Nanochat</a>!!!</p>
+<p>I just wrote an <a href="https://omkaark.com/posts/cce.html">explainer on CCE</a> and was building a training repo to check CCE convergence on a small LLM. 4 hours after I started working on it, Karpathy released <a href="https://github.com/karpathy/nanochat">Nanochat</a>!!!</p>
 <p>I discuss implementation and results in this short post.</p>
 <h2>Implementing CCE</h2>
 <p>Apple has done a great job of making their kernels very easy to integrate and feature-rich.</p>
-<p>Karpathy's code has this for training:</p>
+<p>Karpathy's code has this for calculating loss:</p>
 <pre><code>logits = self.lm_head(x)
 logits = softcap * torch.tanh(logits / softcap) # logits softcap
 logits = logits.float() # use tf32/fp32 for logits
@@ -322,7 +322,7 @@ loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignor
 loss = linear_cross_entropy(x, self.lm_head.weight, targets, softcap=softcap, reduction=loss_reduction, ignore_index=-1, impl=LinearCrossEntropyImpl.CCE_KAHAN_FULL)
 </code></pre>
 <h2>Results</h2>
-<p>Now, I have a few variations which could have affected these results. Kahan Sum provides more numerically stable results at a small memory cost. Instead of model_depth = 20, I have model_depth = 10. I only trained over 4k steps and I train base on batch_size = 32 vs CCE with batch_size = 64 (afforded by the lower peak VRAM).</p>
+<p>Now, I have a few variations from base code which could have affected these results. Kahan Sum provides more numerically stable results at a small memory cost. Instead of model_depth = 20, I have model_depth = 10. I only trained over 4k steps and I train base on batch_size = 32 vs CCE with batch_size = 64 (afforded by the lower peak VRAM).</p>
 <p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/9-cce-impl/cce-run.png?raw=true" alt="CCE Run" /></p>
 <p>As shown above, Torch's cross entropy gives lower loss than Apple's Cut Cross Entropy. Someone verbally reported the same results to me with Liger's Chunked Cross Entropy. Note, toks/s trained did go up, but loss convergence is preferred over everything!</p>
 <h2>End Notes</h2>
