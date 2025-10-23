@@ -328,6 +328,8 @@ body {
 >
 </iframe>
 
+<p>In general, for any floating point number (fp32, fp8, fp4, etc), with 1 sign bit, e exponent bits and m mantissa bits, this is the general formula to calculate it's value. Personally, this really helped me understand fp representation.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/3-float-math/general-form.png?raw=true" alt="General form for any floating point representation" /></p>
 <p><br/></p>
 <h3>Float32</h3>
 <p>This was the default format for ML. Great support across hardware vendors. f32 has about 7 digits of precision, anything beyond that is usually wrong. The only problem is it's memory intensive, do we really need 8 exponent and 23 mantissa bits?</p>
