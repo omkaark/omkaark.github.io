@@ -43,4 +43,10 @@
     "description": "I wanted to confirm the paper's findings and it turns out, for my experiment, AdamW has better loss over time than CCE on 4k steps.",
     "slug": "cce-experiment",
     "date": "2025-10-16"
+}, {
+    "name": "How to Train an LLM: Part 1",
+    "image": "10-1b-model-p1/how-to-train-a-llm.png",
+    "description": "I train a 1B llama3-like LLM from scratch and built the accompanying infra to train it.",
+    "slug": "llm-1b-1",
+    "date": "2025-11-11"
 }]

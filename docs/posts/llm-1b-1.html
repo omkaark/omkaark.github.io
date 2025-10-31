@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
+            <title>How to Train an LLM: Part 1 - Omkaar Kamath</title>
+            <meta name="description" content="I train a 1B llama3-like LLM from scratch and built the accompanying infra to train it.">
+            <meta property="og:title" content="How to Train an LLM: Part 1 - Omkaar Kamath">
+            <meta property="og:description" content="I train a 1B llama3-like LLM from scratch and built the accompanying infra to train it.">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/llm-1b-1.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/10-1b-model-p1/how-to-train-a-llm.png?raw=true">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="How to Train an LLM: Part 1 - Omkaar Kamath">
+            <meta name="twitter:description" content="I train a 1B llama3-like LLM from scratch and built the accompanying infra to train it.">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/10-1b-model-p1/how-to-train-a-llm.png?raw=true">
+        
+
+    <style>
+    /* ---------- TYPOGRAPHY SYSTEM (rem/em only) ---------- */
+:root {
+  /* One knob to rule them all. Change this in media query to scale everything. */
+  --base: 1rem;           /* 1rem = browser default (usually 16px) */
+  --scale: 1.25;          /* modular scale ratio: Major Third */
+
+  /* Precomputed steps off the base using the scale (no px anywhere) */
+  --step-0:  calc(var(--base) * 1.25);
+  --step-1:  calc(var(--base) * 1.4);
+  --step-2:  calc(var(--step-1) * 1.4);
+  --step-3:  calc(var(--step-2) * 1.4);
+  --step-4:  calc(var(--step-3) * 1.7);
+}
+
+/* On mobile, set ONE number (the base) and everything scales automatically */
+@media (max-width: 768px) {
+  :root {
+    --base: 0.95rem;   /* tighten all text ~5%. change to 0.90rem, 1.05rem, etc */
+  }
+}
+
+/* ---------- GLOBAL ---------- */
+html { font-size: 100%; } /* keep user/browser zoom respectful */
+body {
+  font-family: 'Courier New', 'Monaco', monospace;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: #000;
+  background: #fff;
+  width: 80vw;
+  max-width: 50rem; /* 800px -> 50rem for consistency */
+  margin: 0 auto;
+  padding: 2.5rem 0; /* 40px -> 2.5rem */
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  border-bottom: 0.125rem solid #000; /* 2px -> rem */
+  padding-bottom: 1.25rem;           /* 20px -> 1.25rem */
+}
+
+.name {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: 0.125rem; /* 2px -> rem */
+  text-transform: uppercase;
+}
+
+/* ---------- INDEX / POSTS LIST ---------- */
+.posts {
+  margin-bottom: 5rem;
+  font-size: var(--step-1);
+}
+
+.post {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem; /* 12px 20px */
+  margin: 1.25rem 0;       /* 20px */
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.post::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -100%;
+  width: 100%;
+  background: #FFFDD0;
+  transition: left 0.15s ease;
+  z-index: -1;
+}
+.post:hover::before { left: 0; }
+
+.post-hover-gif {
+  position: absolute;
+  height: 4rem;
+  width: 40rem;
+  background-image: url("https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/run.gif?raw=true");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: right;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 120ms ease-in;
+}
+
+.post-link:hover .post-hover-gif { 
+  opacity: 1; 
+}
+
+.post-title { flex: 1; margin-right: 1.25rem; }
+.post-link { color: #000; text-decoration: none; font-weight: 400; position: relative; }
+
+.post-date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+/* ---------- FOOTER ---------- */
+.footer {
+  border-top: 0.125rem solid #000;
+  padding-top: 1.25rem;
+  display: flex;
+  gap: 1.875rem; /* 30px */
+}
+
+.social-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem; /* 1px */
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+.social-link:hover { text-decoration: underline; }
+
+/* ---------- POST PAGE ---------- */
+.post-content {
+  margin-bottom: 5rem;
+  max-width: 50rem;
+  font-size: var(--step-0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 0.0625rem solid #000; /* 1px */
+}
+
+.back-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem;
+  font-weight: 700;
+  font-size: var(--step--1);
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Headings on the scale */
+.post-content h1 {
+  margin: 1.875rem 0 1.25rem; /* 30 0 20 */
+  font-size: var(--step-3);
+  line-height: 1.2;
+}
+
+.post-content h2 {
+  margin: 1.875rem 0 0.9375rem; /* 30 0 15 */
+  font-size: var(--step-2);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h3 {
+  margin: 1.5625rem 0 0.625rem; /* 25 0 10 */
+  font-size: var(--step-1);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h4 {
+  margin: 1.425rem 0 0.425rem; /* 25 0 10 */
+  font-size: var(--step-0);
+  line-height: 1.25;
+  width: 100%;
+}
+
+.post-content ul {
+  width: 90%;
+}
+
+.post-content p {
+  margin-bottom: 1.25rem; /* 20 */
+  line-height: 1.6;
+  font-size: var(--step-0);
+  font-family: Monaco, monospace;
+  width: 100%;
+}
+
+.post-content a { color: #000; text-decoration: underline; }
+.post-content a:hover { background: #f5f5dc; }
+
+/* Images unaffected by font scale, but spacings use rem for consistency */
+.post-content img {
+  margin: 1.25rem 0;
+  max-width: 100%;
+  max-height: 50rem;
+  border-radius: 0.5rem; /* 8px */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px #ccc dashed;
+  padding: 10px;
+}
+
+/* ---------- INLINE CODE ---------- */
+.post-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--step-0);
+  background: rgba(127,127,127,.12);
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  padding: .15em .4em;   /* em ties to current font-size */
+  border-radius: .35em;
+  word-break: break-word;
+}
+
+/* ---------- CODE BLOCKS ---------- */
+.post-content pre {
+  margin: 1.25rem 0;
+  padding: 0.875rem 1rem; /* 14px 16px */
+  border-radius: 0.75rem; /* 12px */
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  background: #f7f7f9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  tab-size: 2;
+  font-size: var(--step-0); /* control block base size */
+  line-height: 1.55;
+  width: 100%;
+}
+.post-content pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;   /* inherit from pre; keep scale intact */
+  line-height: 1.55;
+  display: block;
+  white-space: pre;
+}
+
+/* ---------- RESPONSIVE LAYOUT ONLY (typography scales via --base) ---------- */
+@media (max-width: 768px) {
+  body { width: 95vw; padding: 1.25rem 0; }
+
+  .header { flex-direction: column; justify-items: center; }
+
+  .post {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.5rem 0.9375rem;
+    margin: 1.25rem 0.625rem;
+    background: #FFFDD0;
+  }
+  .post::before { display: none; }
+
+  .post-title { margin-right: 0; margin-bottom: 0.25rem; }
+
+  .footer { flex-wrap: wrap; gap: 0.9375rem; }
+
+  .post-meta { flex-direction: column; align-items: flex-start; gap: 0.625rem; }
+
+  .post-content { margin: 0 0.625rem; }
+
+  .post-link:hover .post-hover-gif { 
+    opacity: 0;
+  }
+}
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
+        <div>
+            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
+            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
+            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
+        </div>
+    </header>
+
+    
+    <main class="post-content">
+        <h1>How to Train an LLM: Part 1</h1>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/10-1b-model-p1/how-to-train-a-llm.png?raw=true" alt="How to Train an LLM by Omkaar Kamath" /></p>
+<p>This is not a tutorial, it is my journey building a domain-specific model (domain under wraps till later blogs). In this blog (1 of N), I’ll set up basic pre-training infra, train a 1B Llama 3–style model on 8×H100s, and figure out how far that actually gets us.</p>
+<p>While I have trained models in the past, none of them match the effort that I am about to put over the coming weeks. This blog was inspired by <a href="https://github.com/karpathy/nanochat">Nanochat</a> and <a href="https://allenai.org/olmo">Olmo</a>.</p>
+<p>Why start with a good ol’ Llama 3–style config? Because I want a clean, boring baseline. Then we get weird or as some might say BLASphemous ;)</p>
+<p>For data, I will use Karpathy's <a href="https://huggingface.co/datasets/karpathy/fineweb-edu-100b-shuffle">fine-web-edu-shuffled</a>. Over the next few blogs, I want to improve my training infra, grow my own token farm - yes, we will engage in the art of token cultivation - and make architectural changes to make it inference-friendly according to the final capability I want these models to possess.</p>
+<p>I want to support a 4096 context length but with the available compute and given attention is still painfully quadratic during training, it makes more sense to keep context shorter and increase batches. Generally, labs train on shorter context for 80-90% of the run and then, go ham in the last 10-20%, similar to <a href="https://arxiv.org/pdf/2407.21783">Llama 3's</a> schedule. Furthermore, in most web-scale datasets, most sequences are &lt;2k tokens anyway, so generally, it's not like we have nice long samples to train on. Therefore, I will train on 2048 as my sequence length. I also omit cross-document masking for now.</p>
+<p>If you're not familiar with Llama-3's architecture, here's what we're working with:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/4-lfm/llama.png?raw=true" alt="Llama 3 Architecture" /></p>
+<p>This is the config I use for training:</p>
+<pre><code>@dataclass
+class ModelConfig:
+    rope_theta: int = 500_000
+    vocab_size: int = 2**17
+    hidden_size: int = 2048
+    swiglu_hidden_multiplier: int = 4
+    norm_eps: float = 1e-5
+    num_attention_heads: int = 32
+    num_hidden_layers: int = 16
+    num_key_value_heads: int = 8
+    tie_embeddings: bool = True
+    attention_bias: bool = False
+    mlp_bias: bool = False
+</code></pre>
+<p>A simple way to get model params in torch is <code>sum(param.numel() for param in model.parameters())</code> = 1241581568 params (1.2B).</p>
+<p>However, we can do this from scratch as well. Assuming group-query attention:</p>
+<pre><code>params = 
+    vocab_size * hidden_dim 
+    + n_layers * (
+        hidden_dim + 
+        2 * hidden_dim * hidden_dim + 
+        2 * hidden_dim * hidden_dim / num_kv_heads + 
+        hidden_dim + 3 * hidden_dim * intermediate_size
+    ) + 
+    hidden_dim +
+    0 (&lt;= tied embeddings)
+= 1241581568 params.
+</code></pre>
+<p>Now, let's estimate memory usage, these are ballpark FP32 numbers to build intuition, not exact Nsight traces.</p>
+<ul>
+<li>Total FP32 memory = (activations + weights + gradients + optimizer state) + misc.</li>
+<li>Misc is for storing kernels, rope cache, etc. on the GPU, let's assign that 5GB.</li>
+<li>Weights = 1241581568 params * 4 bytes / param = 4.97GB</li>
+<li>Gradients = 1241581568 params * 4 bytes / param = 4.97GB</li>
+<li>Activations = dependant on implementation. Let's say k * 1241581568, when batch size of inputs is [1, 2048]. On my experiment, on a non-compiled model, I get n around 1.6 and memory = 7.95GB. It scales linearly (I confirmed this empirically with an experiment) with batch size</li>
+<li>Optimizer = <a href="https://www.geeksforgeeks.org/deep-learning/adam-optimizer/">first moment + second moment</a> = 2 * 1241581568 = 9.94GB</li>
+</ul>
+<p>However, one can't simply add these up to calculate peak memory as different stages retain and evict different tensors. This is the basic training process:</p>
+<pre><code>loss = model.forward(tokens[:, :-1], targets=tokens[:, 1:])
+loss.backward()
+optim.step()
+</code></pre>
+<p>In the forward pass, we use the inputs and weights to calculate activations. Peak Memory = Weights + Activations = (1 + 1.6 * n) * params.</p>
+<p>During backwards, we use the activations and weights to calculate grads and then evict activations from memory. Peak Memory = Weights + Activations + Gradients = (2 + 1.6 * n) * params.</p>
+<p>During the optimizer step, we use grads and optimizer state to update our weights and then free our grads. Peak Memory = Gradients + Optimizer State + Weights = 4 * params</p>
+<p>One thing not accounted for above is the steady-state peak memory of the run. When we initialize the optimizer, it resides in our memory throughout the run. Therefore, for an [n, 2048] input, the backward step produces our memory peak which equals (4 + 1.6 * n) * params. When training with a batch size like n = 64, activation memory &gt;&gt;&gt; then all other allocations combined!</p>
+<p>Since torch's ops are not fused in eager mode, it saves each op's result as an intermediate activation for the backward pass, resulting in more memory reserved than needed. Thankfully, there is a known easy path to reducing activation memory, torch.compile, and a hard path for any unoptimized corner of the profile, custom CUDA kernels. Both try to fuse these ops which tries to eliminate intermediate activations!</p>
+<p>Let’s talk about token budget (total tokens to train). Chinchilla scaling laws say a <a href="https://medium.com/@aiml_58187/beyond-bigger-models-the-evolution-of-language-model-scaling-laws-d4bc974d3876">1:20</a> ratio of params:tokens is optimal. I have 1B params, so 20B tokens is what I need to train on. My target batch size is 1M (2^20) tokens which I chose because GPT-3 XL was trained on 1M (2^20) batch size. <img src="https://developer-blogs.nvidia.com/wp-content/uploads/2023/03/OpenAI-GPT-3.png" alt="GPT Params vs Batch Size Table" /></p>
+<p>20B tokens / 1M tokens = 20000 training steps. Now, let’s do some back of the envelope math with the naive non-compiled numbers above, I have 8xH100’s meaning 80gb per gpu. Training through [1, 2048] tokens takes (1 + 1 + 2 + 1.6) * 1241581568 * 4 in FP32 memory which is 27.8GB of memory maximum. [N, 2048] tokens should take (4 + N * 1.6) * 1241581568 * 4 in FP32 memory which is 19.9GB + N * 7.95GB. On one 80GB H100 (accounting 5GB misc for kernels, etc), ~7 batches of 2048 tokens should fit given my optimistic, naïve calculations!</p>
+<p>2^20 tokens (1,048,576) batch size is an input of shape [512, 2048] tokens. 8 GPUs doing [7, 2048] tokens at a time ([56, 2048] tokens being done at a time) means training one global batch needs to accumulate gradients over ceil(512/56) = 10 steps. Total steps needed to train the model is (20B / 1M) * 10 = 20000 * 10 = 200,000 steps</p>
+<p>Remember this is without any optimizations. But, I have a few ideas up my sleeve which don't drastically affect accuracy: torch compile, flash-attn, gradient accumulation, mixed precision w/ BF16, etc.</p>
+<h3>Hitting a reproducibility snag</h3>
+<p>I calculated activation memory by measuring allocation on my Mac. When I ran these on 1xH100, the activation memory on a [1, 2048] tokens input is much higher. My mac shows 6.2GB while the H100 shows 22.5GB??</p>
+<p>My first thought is could H100 have more intermediate ops which means more activations are saved? However, this does not make sense, ops are the same when not torch.compile'd. To debug this I referred to my confidants claude and chadgpt.</p>
+<p>Claude was more helpful and was a better brainstorming partner. After brainstorming debugging ideas and spending time with my debugger to check theories off, we co-wrote a script to track memory layer-by-layer, and there lay the smoking gun: H100 attention activations per layer was OOMs (exaggeration to allow for funny pun) more compared to CPU attention activations. Upon deeper inspection turns out this was because CUDA SDPA with FP32 inputs falls back to naive attention (MATH backend) which materializes the full attention logit matrix. I confirmed this by manually casting QKV to bf16 and re-casting the output to fp32 to see the same activation memory allocation.</p>
+<p>An idea here instead of manually casting dtypes on ops, it would be great to automatically lower the precision of select ops. This segues perfectly into our next section...</p>
+<h2>Optimization Time</h2>
+<p>In most LLM training runs, engineers have goals related to optimization: maximize MFU (mean flops utilization), maximize training throughput (tok/s), minimize communication overhead, etc. While we won't go too deep into them in this blog, we touch the basics.</p>
+<h3>Torch Compile</h3>
+<p>The first thing one should always try is running <code>torch.compile(model)</code>. I wrote a very simple script for this section to test out optimization changes.</p>
+<pre><code>import time
+import torch
+from torch.optim.adamw import AdamW
+from src.model import LLM
+from src.utils import ModelConfig
+
+device = torch.device('cuda')
+config = ModelConfig()
+model = LLM(config).to(device)
+model.init_weights()
+optimizer = AdamW(model.parameters())
+
+for i in range(5):
+    torch.cuda.reset_peak_memory_stats()
+    start = time.perf_counter()
+
+    tokens = torch.randint(0, 131072, (1, 2048), dtype=torch.int64).to(device)
+    loss = model.forward(tokens, targets=tokens)
+    loss.backward()
+    optimizer.step()
+    optimizer.zero_grad()
+
+    torch.cuda.synchronize()
+    end = time.perf_counter()
+
+    print(f&quot;Step #{i} | Time: {end - start:.3f} s | Allocated: {torch.cuda.memory_allocated() / 1e9:.2f} GB | Peak: {torch.cuda.max_memory_allocated() / 1e9:.2f} GB | Reserved: {torch.cuda.memory_reserved() / 1e9:.2f} GB&quot;)
+</code></pre>
+<p>Note: the huge time/peak in Step #0 &amp; 1 is compilation + warmup. Use Step #2 onwards as steady-state.</p>
+<p>Whatever my earlier math was on batch size was not accurate for unoptimized pytorch (likely underestimated misc. tensors). Without any optimizations, I can only fit [3, 2048] tokens as input without OOM'ing on the H100:</p>
+<pre><code>Step #0 | Time: 1.615 s | Allocated: 14.97 GB | Peak: 59.86 GB | Reserved: 61.05 GB
+Step #1 | Time: 1.235 s | Allocated: 14.97 GB | Peak: 69.83 GB | Reserved: 72.32 GB
+Step #2 | Time: 1.234 s | Allocated: 14.97 GB | Peak: 69.83 GB | Reserved: 72.32 GB
+Step #3 | Time: 1.234 s | Allocated: 14.97 GB | Peak: 69.83 GB | Reserved: 72.32 GB
+Step #4 | Time: 1.235 s | Allocated: 14.97 GB | Peak: 69.83 GB | Reserved: 72.32 GB
+</code></pre>
+<p>I tested the max input size with torch compile <code>model = torch.compile(model, mode='reduce-overhead', fullgraph=True)</code> and I can now do [4, 2048] inputs!</p>
+<pre><code>Step #0 | Time: 7.731 s | Allocated: 14.90 GB | Peak: 67.30 GB | Reserved: 82.94 GB
+Step #1 | Time: 1.601 s | Allocated: 14.90 GB | Peak: 77.23 GB | Reserved: 82.94 GB
+Step #2 | Time: 1.480 s | Allocated: 14.90 GB | Peak: 19.87 GB | Reserved: 82.94 GB
+Step #3 | Time: 1.480 s | Allocated: 14.90 GB | Peak: 19.87 GB | Reserved: 82.94 GB
+Step #4 | Time: 1.480 s | Allocated: 14.90 GB | Peak: 19.87 GB | Reserved: 82.94 GB
+</code></pre>
+<p>Let me explain briefly how torch.compile works. Normally, when running pytorch in eager mode (default) on a GPU, operations invoke a CUDA kernel, and there's overhead when invoking CUDA kernels one at a time. On a profiling chart, these look like empty spaces between each kernel running (referred to as &quot;bubbles&quot; shown below from <a href="https://docs.pytorch.org/docs/stable/torch.compiler_profiling_torch_compile.html">PyTorch blog</a>).</p>
+<p><img src="https://docs.pytorch.org/docs/stable/_images/cpu_bound.png" alt="Bubbles in Torch Profile" /></p>
+<p>These bubbles reduce GPU utilization leading to a slower program. Torch compile tries to create a computational graph and fuse most of ops into bigger kernels to eliminate launch and memory-access overhead. With operations like for example, matmul -&gt; element-wise op, torch.compile creates one kernel for matmul + element-wise which eliminates memory access overhead from element-wise.</p>
+<p>The following image from the <a href="https://pytorch.org/blog/accelerating-pytorch-with-cuda-graphs/">PyTorch Blog</a> might help understand launch overhead minimization.
+<img src="https://pytorch.org/wp-content/uploads/2024/11/fig8.png" alt="CUDA Graph demonstration" /></p>
+<p>Torch compile uses Inductor as it's backend which generates Triton kernels, which means memory access patterns are also vastly improved and everything runs fast!</p>
+<h3>Mixed Precision</h3>
+<p>I haven't mastered the dark arts of low-precision training yet. H100's have support for fp8 but I will stick to bf16 mixed-precision for now. Explicit casting means setting the whole model to be the target type (bf16 in our case). BF16 has the same range but lower precision compared to fp32 which could lead to convergence issues due to rounding and small gradients being rounded to zero. Therefore, I keep weights and optimizer state in FP32, and wrap the forward in autocast so matmuls/attention run in BF16. That keeps numerical stability while storing many activations in BF16 (up to ~2× memory savings there).</p>
+<p>Making this change is simple, I only have to add autocast to the forward pass:</p>
+<pre><code>with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+    loss = model(tokens, targets=tokens)
+</code></pre>
+<p>The max input without OOM'ing is [16, 2048] which gets us the following result!</p>
+<pre><code>Step #0 | Time: 9.958 s | Allocated: 14.90 GB | Peak: 63.12 GB | Reserved: 78.59 GB
+Step #1 | Time: 0.678 s | Allocated: 14.90 GB | Peak: 73.05 GB | Reserved: 78.59 GB
+Step #2 | Time: 0.521 s | Allocated: 14.90 GB | Peak: 19.87 GB | Reserved: 78.59 GB
+Step #3 | Time: 0.535 s | Allocated: 14.90 GB | Peak: 19.87 GB | Reserved: 78.59 GB
+Step #4 | Time: 0.525 s | Allocated: 14.90 GB | Peak: 19.87 GB | Reserved: 78.59 GB
+</code></pre>
+<h3>Fused AdamW</h3>
+<p>While I won't touch kernel land in this post, torch offers a fused AdamW which really saves on memory overhead.</p>
+<p>It drops the last run's result by 5GB on the same [16, 2048] input tokens:</p>
+<pre><code>Step #0 | Time: 9.921 s | Allocated: 14.90 GB | Peak: 63.12 GB | Reserved: 73.63 GB
+Step #1 | Time: 0.643 s | Allocated: 14.90 GB | Peak: 73.05 GB | Reserved: 73.63 GB
+Step #2 | Time: 0.498 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 73.63 GB
+Step #3 | Time: 0.516 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 73.63 GB
+Step #4 | Time: 0.504 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 73.63 GB
+</code></pre>
+<h3>Gradient Checkpointing</h3>
+<p>We reduced activation memory by cutting some of it's size in bytes (fp32 -&gt; bf16). Now, we will use gradient checkpointing which omits storing select activations during the forward pass and recalculates them during the backward pass as needed. This should let us really cut back on activation memory needed.</p>
+<p>There is a good way and a lazy way to do this. Good way is to calculate memory and compute per op and evaluate the tradeoff + look at existing research. Lazy way is what I am about to do... which is brute force.</p>
+<p>Let's add gradient checkpointing on every second layer with a [16, 2048] input, I get these results:</p>
+<pre><code>Step #0 | Time: 35.22 s | Allocated: 14.90 GB | Peak: 39.16 GB | Reserved: 49.72 GB
+Step #1 | Time: 0.650 s | Allocated: 14.90 GB | Peak: 49.09 GB | Reserved: 49.73 GB
+Step #2 | Time: 0.568 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 49.73 GB
+Step #3 | Time: 0.572 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 49.73 GB
+Step #4 | Time: 0.567 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 49.73 GB
+</code></pre>
+<p>A 12% increase in compute time with a 24GB drop in reserved memory which is positively nuts.</p>
+<p>What if we checkpoint all layers ... we get a 20% increase in compute time compared to no checkpointing for a 44GB drop in reserved memory.</p>
+<pre><code>Step #0 | Time: 36.29 s | Allocated: 14.90 GB | Peak: 19.87 GB | Reserved: 29.67 GB
+Step #1 | Time: 0.640 s | Allocated: 14.90 GB | Peak: 29.03 GB | Reserved: 29.67 GB
+Step #2 | Time: 0.603 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 29.67 GB
+Step #3 | Time: 0.593 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 29.67 GB
+Step #4 | Time: 0.600 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 29.67 GB
+</code></pre>
+<p>Let's be cheeky and try [64, 2048] as inputs:</p>
+<pre><code>Step #0 | Time: 57.16 s | Allocated: 14.90 GB | Peak: 58.15 GB | Reserved: 73.76 GB
+Step #1 | Time: 2.408 s | Allocated: 14.90 GB | Peak: 68.09 GB | Reserved: 73.77 GB
+Step #2 | Time: 2.360 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 73.77 GB
+Step #3 | Time: 2.359 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 73.77 GB
+Step #4 | Time: 2.365 s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 73.77 GB
+</code></pre>
+<h3>Could we do more?</h3>
+<p>I think this is perfect because I don't need gradient accumulation anymore. There might still be a few optimizations left on the table.</p>
+<p>I tried switching to allowing the <a href="https://blogs.nvidia.com/blog/tensorfloat-32-precision-format/">tf32</a> which takes fp32 inputs as we currently have it but performs GEMMs, by casting inputs to 19-bit floats (e8m10), on special tf32 compute units which should be faster. However, I did not notice any improvements in speed, so I omitted this. FYI, I simply added <code>torch.set_float32_matmul_precision(&quot;high&quot;)</code>... experts did I miss something?</p>
+<p>Pytorch offers the Flash-Attention-2 (FA-2) backend which is fast but <a href="https://pytorch.org/blog/flashattention-3/">Flash Attention 3</a> is 50% faster on the H100 than FA-2. The only problem here is FA-3 needs to be compiled from source on my system and is known to take light years to compile. My <a href="https://pypi.org/project/flash-attn/2.8.3/">process</a> to get FA-3 is:</p>
+<ol>
+<li><code>uv add packaging ninja</code></li>
+<li><code>git clone https://github.com/Dao-AILab/flash-attention.git &amp;&amp; cd flash-attention</code></li>
+<li><code>cd hopper &amp;&amp; python setup.py install</code></li>
+<li>Use flash_attn_interface.flash_attn_func() instead of SDPA</li>
+</ol>
+<p>Once FA-3 compiled, I tried it out in my code but I get an OOM. My FA-3 setup introduces a graph break in my LLM module which could add some inefficiency. I reduced batch size to 8 and noticed that it takes more time per step and memory than SDPA's FA-2 implementation. My conclusion is I messed up somewhere in my setup, something related to autocast, compile or checkpointing that probably does not gel well with FA-3. I will revisit this in my next blog and try to get it to work (it could be a big win).</p>
+<p>I think checkpointing everything is not the best for my MFU, so I'd like to revisit my checkpointing scheme in the next blog as well. I can cut 34GB (64 * 2048 * 131072 * 2 bytes / param) by <a href="https://omkaark.com/posts/cce.html">not materializing the logits before cross entropy loss</a>, which will give me room to checkpoint less and increase throughput.</p>
+<p>All the changes I have until now should not affect numerical stability and that is pretty important to preserve training convergence.</p>
+<p>Since we plan to run distributed training, there is a question of communication overhead. GPUs need to sync gradients with each other after every backward pass. Given we only distribute bytes of our small model intra-node and intra-node bandwidth is pretty high, the overhead is a bit less relevant to us. In the next blog, I will showcase this more and look into overlapping so DDP will have minimal overhead. Another idea to minimize comm overhead is <a href="https://github.com/Dao-AILab/flash-attention/blob/main/training/src/distributed/ddp_comm_hooks.py">compressing + scaling gradients to fp16</a> which I'll bring into my next blog.</p>
+<h2>Data planning</h2>
+<p>Data planning is probably the most important part of the model training process. Garbage in, Garbage out.</p>
+<p>I have two goals for the end model:</p>
+<ul>
+<li>Mid-context length ready: 90% of the steps will have an input with sequence length 2048 tokens and the rest 4096 tokens.</li>
+<li>Qualitative: Good at english, math and code tasks for a particular downstream task.</li>
+</ul>
+<p>Given that our scope is to start off simple, I want to ensure my codebase works and run converges first and so, I will simply train on Karpathy's <a href="https://huggingface.co/datasets/karpathy/fineweb-edu-100b-shuffle">fine-web-edu-shuffle</a>.</p>
+<h2>General training infra</h2>
+<p>I'll run through this section as it's the finer more boring details.</p>
+<h3>Checkpointing</h3>
+<p>Fairly straightforward, I used torch's <code>save</code> and <code>load</code> APIs to save:</p>
+<pre><code>checkpoint = {
+    &quot;model_state_dict&quot;: model.state_dict(),
+    &quot;optimizer_state_dict&quot;: optimizer.state_dict(),
+    &quot;scheduler_state_dict&quot;: scheduler.state_dict(),
+    &quot;dataset_state_dict&quot;: dataset.state_dict(),
+
+    &quot;python_rng_state&quot;: random.getstate(),
+    &quot;numpy_rng_state&quot;: np.random.get_state(),
+    &quot;torch_rng_state&quot;: torch.get_rng_state(),
+    &quot;cuda_rng_state&quot;: torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+    
+    &quot;step&quot;: step,
+    &quot;best_val_loss&quot;: best_val_loss,
+    &quot;model_config&quot;: asdict(model_config),
+    &quot;train_config&quot;: asdict(train_config),
+
+    &quot;versions&quot;: {
+        &quot;torch&quot;: torch.__version__,
+        &quot;cuda&quot;: torch.version.cuda if torch.cuda.is_available() else None,
+        &quot;python&quot;: sys.version,
+    },
+}
+</code></pre>
+<p>Checkpointing needs GPU-CPU sync of weights and all kinds of state which is pretty heavy and stalls the whole run. To minimize checkpointing, I checkpoint every 2500 steps and on the last step for now. Industry also has checkpointing every time validation loss goes down. There are smarter ways to checkpoint (async) and I might get into it if I see run performance taking a big hit.</p>
+<h3>Weight Initialization</h3>
+<p>I'll be honest I have no prior experience initializing weights for a model of this size. I looked through literature and Nanochat and ended up getting Deep Research to check out papers to suggest ideas. I ended up doing this:</p>
+<pre><code>def init_weights(self):
+    self.apply(self._init_weights)   
+    n_layers = self.config.num_hidden_layers
+    for block in self.layers:
+        std = (self.config.hidden_size ** -0.5) / (2 * n_layers) ** 0.5
+        torch.nn.init.normal_(block.attention.o_proj.weight, mean=0.0, std=std)
+        torch.nn.init.normal_(block.swiglu.down_proj.weight, mean=0.0, std=std)
+
+def _init_weights(self, module):
+    if isinstance(module, nn.Linear):
+        std = 1.0 / module.weight.size(1) ** 0.5  # 1/sqrt(fan_in)
+        torch.nn.init.normal_(module.weight, mean=0.0, std=std)
+        if module.bias is not None:
+            torch.nn.init.zeros_(module.bias)
+    elif isinstance(module, nn.Embedding):
+        torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+</code></pre>
+<h3>Learning rate schedules</h3>
+<p>I have consumed enough content to know to use a linear warmup till m steps and then use a cosine schedule:</p>
+<pre><code>scheduler = get_cosine_schedule_with_warmup(
+    optimizer,
+    warmup_ratio=train_config.warmup_ratio,
+    num_training_steps=train_config.num_iterations,
+    min_lr_ratio=train_config.min_lr_ratio,
+)
+</code></pre>
+<p>It looks like the follows:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/10-1b-model-p1/lr-schedule.png?raw=true" alt="LR schedule: Warmup + Cosine" /></p>
+<h2>Battling the training overlords</h2>
+<p>I expected to face some turbulence during training. I have read multiple great blogs about training convergence issues like the famous <a href="https://wandb.ai/marin-community/marin/reports/Marin-32B-Spike-Fixing--VmlldzoxMzM1Mzk1NQ">Marin 32B's loss spikes</a> blog. I do think convergence issues are more common in larger training runs, so hopefully we do not run into them.</p>
+<p>Because training on 8xH100's directly without verifying every line of code works is a catastrophic waste of money, I rolled out this run in 4 stages. First stage is local device testing where I ran training on my Macbook on a much smaller model. This was to identify any general pytorch related bugs that I might have introduced.</p>
+<p>Once I solved those, I ran it on 1xH100 where I squashed a few minor torch.distributed cleanups and cuda-related errors. I noticed over 250 steps that my loss was down and to the right which is a good sign. The loss starts off as ~12. Since the model has random weights and no knowledge at the beginning, the probability of getting any token is 1/vocab_size and therefore, cross entropy loss is -ln(1/131072) = 11.78, so we are bang on the expected first loss value.</p>
+<p>With [64, 2048] inputs on the 1xH100 and over 256 steps, the model went from a loss of 12.26 to 6.18. To get a better idea of how my actual training run will do, I set grad_accum_steps to 8 (effective batch size = [512, 2048] tokens) which is effectively the batch size of my actual training.</p>
+<p>Then, I hit a snag. Torch.compile + gradient accumulation has some quirks, since I run backward() without runnning the optimizer each step, I get <code>Error: accessing tensor output of CUDAGraphs that has been overwritten by a subsequent run</code>. I spent a bunch of time trying different things like the suggested <code>torch.compiler.cudagraph_mark_step_begin</code> et al to no avail. Finally, an idea was to disable CUDA graphs all together (maybe bad idea in the long term?) and use the 'default' torch.compile mode and it worked! Now, my problem is with higher batch sizes, reserved memory explodes (reduce-overhead mode was saving me all this time). You know what, I don't even need grad accum for now so this is not a pressing problem, let's move on to 2xH100 with the proper torch compile and no grad accum.</p>
+<p>I wanted to run this on a 2xH100 to minimize costs if I end up hitting a snag and debugging, while still checking for correctness on a distributed setup. My first mistake with this run was guessing the order of applying ddp and compile, note: always apply <code>model = DDP(model, ...)</code> first and then <code>model = torch.compile(model, ...)</code>. Ok, so are we finally sorted? Nah, the run failed again because of another CUDA-graph related problem. I decided to try and relax the graph constraint by turning <code>fullgraph=False</code> and it worked! If that did not work, I would have made torch compile mode='default' again but the run and I really don't enjoy the increase in reserved memory (and subsequent OOMs) it causes. FYI, I use torchrun for easy distributed training.</p>
+<p>Finally, it was time to run on the 8xH100 cluster. It works from the get-go!</p>
+<p>A problem I had was around 15k steps my loss was stagnant. My intuition was that the learning rate is too low, there was no way for me to verify this given I was not logging things like ||update|| / ||param|| which would have helped me debug this more. So, I decided to stop training, load back the 15k checkpoint with a different scheduler (0.5*base_lr, very low warmup steps, higher minimum lr ratio) for 5000 steps. To no avail, I could not revive the run, so I decided to save some money, stop the run and leave the checkpoint as is at 15k steps.</p>
+<p>Doing this motion allowed me to verify me checkpointing logic (although I should have tested it on 1xH100 first) and fix all the minor bugs. Major bugs mean all the 10+ hours of 8xH100 money is wasted. I don't enjoy YOLO runs and this one did not work.</p>
+<p>This is my graph for the first 15,000 steps:</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/10-1b-model-p1/8xh100_run.png?raw=true" alt="15k steps of training a 1B model" /></p>
+<p>Overall, this was fun, however my MFU is at 18% &amp; train throughput was at 400k tok/s which is no bueno. Running checkpointing on every layer impacted throughput a lot, however it allows me to skip gradient accumulation, so I need to consider this tradeoff in my next article.</p>
+<p>Given future roadmap and the need to train more models, I want to minimize costs and inefficiency as much as possible while making my performance gains translatable to all types of models / runs. These gains will come over the next post and will be easy to test now that we have a stable, working V0 training infra.</p>
+<h2>Reflections</h2>
+<p>I have a few reflections. I started off with a massive scope but realized it's too much for a fresh codebase. I wrote this messy but working first iteration, then refined it over the course which reminds me of this picture:
+<img src="https://i.ytimg.com/vi/wEMMqhVMXuQ/maxresdefault.jpg" alt="SpaceX's thruster optimization" /></p>
+<p>It's much easier to iterate from bad to good than end up at good straight away. Don't get me wrong my repo is still far from SOTA but it provides a clear working implementation which I can abstract further later. That brings us to my second reflection, I had to rely on others' observations for learning rate, weight inits, scheduler and other hyperparams. Great researchers have a mix of empirical evidence along with mathematical intuition for what works based on 100s of past runs. It's something that I'll just have to iterate and read more papers on.</p>
+<h3>Extras</h3>
+<p>Tim Dettmers has a library called bitsandbytes which is widely used for quantization. Check this <a href="https://arxiv.org/abs/2305.14314">paper</a> to learn more. Anyway, they have an AdamW8bit optimizer which is commonly used in finetuning.</p>
+<p>If pre-training with this over 8k+ steps converges, I can basically get away with using this 8bit version! So I brought it into my 1xH100 training run along with StableEmbedding which is the recommended setting. My reserved memory dropped by 10GB and these are my wandb runs 8bit vs fp32 AdamW:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/10-1b-model-p1/nf4-training.png?raw=true" alt="NF4 vs FP32 AdamW" /></p>
+<p>At first glance, it seems like it converged even better than the fp32 variant. However, upon looking carefully, you might notice my blunder. I messed up and gave 8bit AdamW 3x the peak learning rate. Would I scrap all my results though? No, while AdamW8bit &gt; AdamW32bit is inconclusive, AdamW8bit looks stable enough. I am planning to use it in my next run as it reduces memory while still converging.</p>
+
+    </main>
+    
+</body>
+</html>
