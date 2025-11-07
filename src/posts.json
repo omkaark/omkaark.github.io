@@ -43,4 +43,10 @@
     "description": "I wanted to confirm the paper's findings and it turns out, for my experiment, AdamW has better loss over time than CCE on 4k steps.",
     "slug": "cce-experiment",
     "date": "2025-10-16"
+}, {
+    "name": "[Worklog] Training a 1B decoder model: Part 1",
+    "image": "10-1b-model-p1/8xh100_run.png",
+    "description": "I walk through my thinking process as I train a simple 1B llama3-like language model.",
+    "slug": "1b-model-part1",
+    "date": "2025-11-06"
 }]
