@@ -44,9 +44,9 @@
     "slug": "cce-experiment",
     "date": "2025-10-16"
 }, {
-    "name": "[Worklog] Training a 1B decoder model: Part 1",
-    "image": "10-1b-model-p1/8xh100_run.png",
-    "description": "I walk through my thinking process as I train a simple 1B llama3-like language model.",
-    "slug": "1b-model-part1",
-    "date": "2025-11-06"
+    "name": "How to train a LLM: Part 1",
+    "image": "10-1b-model-p1/how-to-train-a-llm.png",
+    "description": "I train a 1B llama3-like LLM from scratch and built the accompanying infra to train it.",
+    "slug": "llm-1b-1",
+    "date": "2025-11-11"
 }]
