@@ -168,7 +168,7 @@ Step #4 | Time: 0.506 s | Allocated: 14.90 GB | Peak: 19.87 GB | Reserved: 54.63
 ```
 
 A 12% increase in compute time with a 24GB drop in reserved memory which is nuts. 
-3
+
 Let's try checkpointing all layers:
 ```
 Step #0 | Time: 30.168 s | Allocated: 14.90 GB | Peak: 24.83 GB | Reserved: 34.63 GB
@@ -259,7 +259,7 @@ This is my graph for the first 15,000 steps:
 
 !()[/Users/omkaarwork/Desktop/projects/personal-website/public/x-worklog-1b-llama/8xh100_run.png]
 
-Overall, this was fun, however my MFU was at 18% & train throughput was at 400k tok/s which is no bueno. I know my checkpointing on every layer impacted throughput a lot, however it allows me to skip gradient accumulation, so I need to think a bit more about this tradeoff. As part of my explorations, I have to train more models. I want to minimize cost as much as possible while making my performance gains translatable to all kinds of future runs. I will work on this over next post.
+If you are curious about model quality, find it [here](https://huggingface.co/omkaark/test1). Overall, this was fun, however my MFU was at 18% & train throughput was at 400k tok/s which is no bueno. I know my checkpointing on every layer impacted throughput a lot, however it allows me to skip gradient accumulation, so I need to think a bit more about this tradeoff. As part of my explorations, I have to train more models. I want to minimize cost as much as possible while making my performance gains translatable to all kinds of future runs. I will work on this over next post.
 
 I have a few reflections. I started off with a massive scope (which I ommited here) but realized it's too much for a fresh codebase. I wrote a very bad but working first iteration, then refined things as I cut down requirements which reminds me of this picture:
 !(SpaceX's thruster optimization)[https://i.ytimg.com/vi/wEMMqhVMXuQ/maxresdefault.jpg]
