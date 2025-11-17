@@ -263,6 +263,43 @@ body {
   white-space: pre;
 }
 
+/* ---------- TABLES ---------- */
+.post-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 2rem 0;
+  font-size: var(--step-0);
+  font-family: Monaco, monospace;
+}
+
+.post-content th,
+.post-content td {
+  border: 0.0625rem solid #000; /* thin black grid */
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.post-content th {
+  background: #f5f5f5;
+  font-weight: 700;
+  letter-spacing: 0.03rem;
+  text-transform: uppercase;
+}
+
+.post-content tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.post-content tr:hover td {
+  background: #FFFDD0; /* same yellow hover as posts */
+  transition: background 120ms ease-in-out;
+}
+
+.post-content table code {
+  font-size: 0.95em;
+}
+
 /* ---------- RESPONSIVE LAYOUT ONLY (typography scales via --base) ---------- */
 @media (max-width: 768px) {
   body { width: 95vw; padding: 1.25rem 0; }
@@ -289,6 +326,15 @@ body {
   .post-link:hover .post-hover-gif { 
     opacity: 0;
   }
+
+  .post-content table {
+    font-size: calc(var(--step-0) * 0.9);
+  }
+
+  .post-content th,
+  .post-content td {
+    padding: 0.6rem 0.75rem;
+  }
 }
 
     </style>
@@ -305,6 +351,17 @@ body {
     </header>
 
     <main class="posts" id="posts-container">
+
+        <a href="posts/llm-1b-2.html" class="post-link">
+            <span class="post-hover-gif" aria-hidden="true"></span>
+            <div class="post">
+                <div class="post-title">
+                    How to Train an LLM: Part 2
+                </div>
+                <div class="post-date">2025-11-13</div>
+            </div>
+        </a>
+        
 
         <a href="posts/llm-1b-1.html" class="post-link">
             <span class="post-hover-gif" aria-hidden="true"></span>

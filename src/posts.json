@@ -49,4 +49,10 @@
     "description": "I train a 1B llama3-like LLM from scratch and built the accompanying infra to train it.",
     "slug": "llm-1b-1",
     "date": "2025-11-11"
+}, {
+    "name": "How to Train an LLM: Part 2",
+    "image": "11-1b-model-p2/how-to-train-a-llm-2.png",
+    "description": "I optimize the infra and architecture to be much better.",
+    "slug": "llm-1b-2",
+    "date": "2025-11-13"
 }]

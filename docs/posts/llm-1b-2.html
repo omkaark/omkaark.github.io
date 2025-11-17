@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
+            <title>How to Train an LLM: Part 2 - Omkaar Kamath</title>
+            <meta name="description" content="I optimize the infra and architecture to be much better.">
+            <meta property="og:title" content="How to Train an LLM: Part 2 - Omkaar Kamath">
+            <meta property="og:description" content="I optimize the infra and architecture to be much better.">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/llm-1b-2.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/how-to-train-a-llm-2.png?raw=true">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="How to Train an LLM: Part 2 - Omkaar Kamath">
+            <meta name="twitter:description" content="I optimize the infra and architecture to be much better.">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/how-to-train-a-llm-2.png?raw=true">
+        
+
+    <style>
+    /* ---------- TYPOGRAPHY SYSTEM (rem/em only) ---------- */
+:root {
+  /* One knob to rule them all. Change this in media query to scale everything. */
+  --base: 1rem;           /* 1rem = browser default (usually 16px) */
+  --scale: 1.25;          /* modular scale ratio: Major Third */
+
+  /* Precomputed steps off the base using the scale (no px anywhere) */
+  --step-0:  calc(var(--base) * 1.25);
+  --step-1:  calc(var(--base) * 1.4);
+  --step-2:  calc(var(--step-1) * 1.4);
+  --step-3:  calc(var(--step-2) * 1.4);
+  --step-4:  calc(var(--step-3) * 1.7);
+}
+
+/* On mobile, set ONE number (the base) and everything scales automatically */
+@media (max-width: 768px) {
+  :root {
+    --base: 0.95rem;   /* tighten all text ~5%. change to 0.90rem, 1.05rem, etc */
+  }
+}
+
+/* ---------- GLOBAL ---------- */
+html { font-size: 100%; } /* keep user/browser zoom respectful */
+body {
+  font-family: 'Courier New', 'Monaco', monospace;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: #000;
+  background: #fff;
+  width: 80vw;
+  max-width: 50rem; /* 800px -> 50rem for consistency */
+  margin: 0 auto;
+  padding: 2.5rem 0; /* 40px -> 2.5rem */
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  border-bottom: 0.125rem solid #000; /* 2px -> rem */
+  padding-bottom: 1.25rem;           /* 20px -> 1.25rem */
+}
+
+.name {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: 0.125rem; /* 2px -> rem */
+  text-transform: uppercase;
+}
+
+/* ---------- INDEX / POSTS LIST ---------- */
+.posts {
+  margin-bottom: 5rem;
+  font-size: var(--step-1);
+}
+
+.post {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem; /* 12px 20px */
+  margin: 1.25rem 0;       /* 20px */
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.post::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -100%;
+  width: 100%;
+  background: #FFFDD0;
+  transition: left 0.15s ease;
+  z-index: -1;
+}
+.post:hover::before { left: 0; }
+
+.post-hover-gif {
+  position: absolute;
+  height: 4rem;
+  width: 40rem;
+  background-image: url("https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/run.gif?raw=true");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: right;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 120ms ease-in;
+}
+
+.post-link:hover .post-hover-gif { 
+  opacity: 1; 
+}
+
+.post-title { flex: 1; margin-right: 1.25rem; }
+.post-link { color: #000; text-decoration: none; font-weight: 400; position: relative; }
+
+.post-date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+/* ---------- FOOTER ---------- */
+.footer {
+  border-top: 0.125rem solid #000;
+  padding-top: 1.25rem;
+  display: flex;
+  gap: 1.875rem; /* 30px */
+}
+
+.social-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem; /* 1px */
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+.social-link:hover { text-decoration: underline; }
+
+/* ---------- POST PAGE ---------- */
+.post-content {
+  margin-bottom: 5rem;
+  max-width: 50rem;
+  font-size: var(--step-0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 0.0625rem solid #000; /* 1px */
+}
+
+.back-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem;
+  font-weight: 700;
+  font-size: var(--step--1);
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Headings on the scale */
+.post-content h1 {
+  margin: 1.875rem 0 1.25rem; /* 30 0 20 */
+  font-size: var(--step-3);
+  line-height: 1.2;
+}
+
+.post-content h2 {
+  margin: 1.875rem 0 0.9375rem; /* 30 0 15 */
+  font-size: var(--step-2);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h3 {
+  margin: 1.5625rem 0 0.625rem; /* 25 0 10 */
+  font-size: var(--step-1);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h4 {
+  margin: 1.425rem 0 0.425rem; /* 25 0 10 */
+  font-size: var(--step-0);
+  line-height: 1.25;
+  width: 100%;
+}
+
+.post-content ul {
+  width: 90%;
+}
+
+.post-content p {
+  margin-bottom: 1.25rem; /* 20 */
+  line-height: 1.6;
+  font-size: var(--step-0);
+  font-family: Monaco, monospace;
+  width: 100%;
+}
+
+.post-content a { color: #000; text-decoration: underline; }
+.post-content a:hover { background: #f5f5dc; }
+
+/* Images unaffected by font scale, but spacings use rem for consistency */
+.post-content img {
+  margin: 1.25rem 0;
+  max-width: 100%;
+  max-height: 50rem;
+  border-radius: 0.5rem; /* 8px */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px #ccc dashed;
+  padding: 10px;
+}
+
+/* ---------- INLINE CODE ---------- */
+.post-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--step-0);
+  background: rgba(127,127,127,.12);
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  padding: .15em .4em;   /* em ties to current font-size */
+  border-radius: .35em;
+  word-break: break-word;
+}
+
+/* ---------- CODE BLOCKS ---------- */
+.post-content pre {
+  margin: 1.25rem 0;
+  padding: 0.875rem 1rem; /* 14px 16px */
+  border-radius: 0.75rem; /* 12px */
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  background: #f7f7f9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  tab-size: 2;
+  font-size: var(--step-0); /* control block base size */
+  line-height: 1.55;
+  width: 100%;
+}
+.post-content pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;   /* inherit from pre; keep scale intact */
+  line-height: 1.55;
+  display: block;
+  white-space: pre;
+}
+
+/* ---------- TABLES ---------- */
+.post-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 2rem 0;
+  font-size: var(--step-0);
+  font-family: Monaco, monospace;
+}
+
+.post-content th,
+.post-content td {
+  border: 0.0625rem solid #000; /* thin black grid */
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.post-content th {
+  background: #f5f5f5;
+  font-weight: 700;
+  letter-spacing: 0.03rem;
+  text-transform: uppercase;
+}
+
+.post-content tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.post-content tr:hover td {
+  background: #FFFDD0; /* same yellow hover as posts */
+  transition: background 120ms ease-in-out;
+}
+
+.post-content table code {
+  font-size: 0.95em;
+}
+
+/* ---------- RESPONSIVE LAYOUT ONLY (typography scales via --base) ---------- */
+@media (max-width: 768px) {
+  body { width: 95vw; padding: 1.25rem 0; }
+
+  .header { flex-direction: column; justify-items: center; }
+
+  .post {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.5rem 0.9375rem;
+    margin: 1.25rem 0.625rem;
+    background: #FFFDD0;
+  }
+  .post::before { display: none; }
+
+  .post-title { margin-right: 0; margin-bottom: 0.25rem; }
+
+  .footer { flex-wrap: wrap; gap: 0.9375rem; }
+
+  .post-meta { flex-direction: column; align-items: flex-start; gap: 0.625rem; }
+
+  .post-content { margin: 0 0.625rem; }
+
+  .post-link:hover .post-hover-gif { 
+    opacity: 0;
+  }
+
+  .post-content table {
+    font-size: calc(var(--step-0) * 0.9);
+  }
+
+  .post-content th,
+  .post-content td {
+    padding: 0.6rem 0.75rem;
+  }
+}
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
+        <div>
+            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
+            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
+            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
+        </div>
+    </header>
+
+    
+    <main class="post-content">
+        <h1>How to Train an LLM: Part 2</h1>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/how-to-train-a-llm-2.png?raw=true" alt="" /></p>
+<p>This is a continuation from <a href="https://omkaark.com/posts/llm-1b-1.html">Part 1</a> of the saga.</p>
+<p>My plan for this blog was to run performance optimization, architecture search, etc... until (spoiler) I faced a gnarly bug while trying to figure out the best LR.</p>
+<p>As I mentioned in Part 1, this is more of a log of my experiments than a polished explainer but you’ll probably pick up a thing or two.</p>
+<h2>Performance Optimizations</h2>
+<p>This will be an optimization heavy blog. I want to make my run cheaper and converge faster. To be honest, a few percent savings at this scale don’t really matter... I just do this for the love of the FLOPs. I wanted to tweak architecture and test out more data/hyperparam ideas but that should come after I make infra optimizations. These optimizations will aim to reduce memory usage and increase training throughput.</p>
+<p>Let's start with the elephant in the room: getting Flash Attention 3 to work.</p>
+<h3>Flash Attention 3</h3>
+<p>In the last blog, we omitted FA3 and went for standard torch SDPA. I tried really hard to get it to work, I spent hours on the debugger, begged the threads to cooperate, flipped some settings, etc., and I think I finally know what the problem is.</p>
+<p>It's definitely not an autocast thing... I'm pretty sure it's a <code>torch.compile</code> thing.</p>
+<p>Without <code>torch.compile</code>, these are the first three train steps with and without FA3 on an [8, 2048] input.</p>
+<pre><code>Using Flash Attention 3
+Step #0 | Time: 0.596s | Allocated: 14.97 GB | Peak: 29.36 GB | Reserved: 36.52 GB
+Step #1 | Time: 0.407s | Allocated: 14.97 GB | Peak: 39.33 GB | Reserved: 53.70 GB
+Step #2 | Time: 0.406s | Allocated: 14.97 GB | Peak: 39.33 GB | Reserved: 53.70 GB
+
+Using PyTorch SDPA
+Step #0 | Time: 0.604s | Allocated: 14.97 GB | Peak: 29.36 GB | Reserved: 36.52 GB
+Step #1 | Time: 0.428s | Allocated: 14.97 GB | Peak: 39.33 GB | Reserved: 53.70 GB
+Step #2 | Time: 0.427s | Allocated: 14.97 GB | Peak: 39.33 GB | Reserved: 53.70 GB
+</code></pre>
+<p>I ignore Step #0 and #1 in both runs, since it’s dominated by compilation/warmup. Notice the same memory usage, with FA3 about ~3–4% faster. Now, this is with <code>torch.compile</code> (fullgraph=False as FA3 is not compilable <a href="https://github.com/Dao-AILab/flash-attention/pull/1769">yet</a>).</p>
+<pre><code>Flash Attention 3
+Step #0 | Time: 2.035s | Allocated: 7.48 GB | Peak: 25.20 GB | Reserved: 29.57 GB
+Step #1 | Time: 0.390s | Allocated: 7.48 GB | Peak: 30.17 GB | Reserved: 16.79 GB
+Step #2 | Time: 0.360s | Allocated: 7.52 GB | Peak: 30.07 GB | Reserved: 38.26 GB
+Step #3 | Time: 0.364s | Allocated: 7.52 GB | Peak: 30.07 GB | Reserved: 38.26 GB
+Step #4 | Time: 0.358s | Allocated: 7.52 GB | Peak: 30.07 GB | Reserved: 38.26 GB
+
+PyTorch SDPA
+Step #0 | Time: 30.30s | Allocated: 7.45 GB | Peak: 11.59 GB | Reserved: 18.23 GB
+Step #1 | Time: 0.339s | Allocated: 7.45 GB | Peak: 16.56 GB | Reserved: 18.23 GB
+Step #2 | Time: 0.294s | Allocated: 7.45 GB | Peak: 7.45 GB | Reserved: 18.23 GB
+Step #3 | Time: 0.301s | Allocated: 7.45 GB | Peak: 7.45 GB | Reserved: 18.23 GB
+Step #4 | Time: 0.309s | Allocated: 7.45 GB | Peak: 7.45 GB | Reserved: 18.23 GB
+</code></pre>
+<p>SDPA is compile-compatible (mouthful ik) so torch can reserve memory more optimally. With FA3, since it's a black box op and not torch-compile-compatible, it reserves more memory. Sadly, the conclusion is to stick with SDPA since it's faster when compiled and consumes less memory. We might have to revisit FA3 if our FP8 experiments end up working (low-precision attention + hopper-specifics is the main selling point from what I heard).</p>
+<p>Note: If you are an expert and think my conclusion is incorrect, I'd love to hear from you!</p>
+<h3>Gradient Checkpointing</h3>
+<p>In the last blog, I checkpointed the whole decoder block. Gradient checkpointing trades memory for compute: instead of storing all intermediate activations for backprop, you re-compute them on the backward pass for the layers you “checkpoint”.</p>
+<p>Here I want to understand the compute-memory tradeoff of different parts of the decoder block on a [16, 2048] input. I’ll selectively checkpoint different ops from the following DecoderBlock module and measure performance.</p>
+<pre><code>class CheckpointedDecoderBlock(nn.Module):
+    def __init__(self, config: ModelConfig):
+        super().__init__()
+        self.attn_norm = RMSNorm(config)
+        self.attention = Attention(config)
+        self.swiglu_norm = RMSNorm(config)
+        self.swiglu = SwiGLU(config)
+    
+    def forward(self, x: torch.Tensor, cos_cached: torch.Tensor, sin_cached: torch.Tensor):
+        norm = self.attn_norm(x)
+        attn = self.attention(norm, cos_cached, sin_cached)
+        x = x + attn
+        norm = self.swiglu_norm(x)
+        swiglu = self.swiglu(norm)
+        x = x + swiglu
+        return x
+</code></pre>
+<table>
+  <thead>
+    <tr>
+      <th>Configuration</th>
+      <th>&Delta; Compute vs Baseline</th>
+      <th>&Delta; Reserved Memory vs Baseline</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Baseline</strong></td>
+      <td>0%</td>
+      <td>0%</td>
+    </tr>
+    <tr>
+      <td>Embedding</td>
+      <td>~0%</td>
+      <td>−0.5%</td>
+    </tr>
+    <tr>
+      <td>Attn + SwiGLU Norms</td>
+      <td>~0%</td>
+      <td>~0%</td>
+    </tr>
+    <tr>
+      <td>Attention</td>
+      <td>+6%</td>
+      <td>−11%</td>
+    </tr>
+    <tr>
+      <td>SwiGLU</td>
+      <td>+6%</td>
+      <td>−40%</td>
+    </tr>
+    <tr>
+      <td><strong>Full Block</strong></td>
+      <td>+17%</td>
+      <td>−56%</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>To be fair, full gradient checkpointing does not hit MFU as bad as I thought. Checkpointing just the SwiGLU MLP looks like the best trade-off here. If I can claw back memory elsewhere without touching checkpointing, I can even dial back checkpointing later and squeeze out a bit more MFU.</p>
+<h3>Eliminate logits</h3>
+<p>Fused/Chunked cross-entropy variants are popular now. They reduce memory during the loss computation by avoiding a full [batch, seq, vocab] logits tensor. I already have a blog on one such variant - <a href="https://omkaark.com/posts/cce.html">Cut Cross Entropy by Apple</a> - and <a href="https://omkaark.com/posts/cce-experiment.html">my failed experiment with it</a>.</p>
+<p>Chunked Cross Entropy computes the softmax/loss in chunks over the vocab dimension (like flash attn), so you never materialize the full [batch, seq, vocab] logits tensor. Memory savings shown in this visual from <a href="https://arxiv.org/html/2411.09009v1">Apple's CCE paper</a>.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/8-cce/memory-savings.png?raw=true" alt="Cut Cross Entropy" /></p>
+<h4>Liger Kernels</h4>
+<p>LinkedIn's <a href="https://github.com/linkedin/Liger-Kernel">Liger Kernels</a> gained popularity for their Fused Linear Cross Entropy implementation which touts big perf gains.</p>
+<p>There aren't a large number of reference implementations out in the wild for this, so I took whatever is in their Readme, read their paper and repo code, and adapted it to my code.</p>
+<p>I replaced</p>
+<pre><code>logits = self.lm_head(x)
+loss = torch.nn.functional.cross_entropy(
+    logits.reshape(-1, logits.shape[-1]), 
+    targets.reshape(-1)
+)
+</code></pre>
+<p>with:</p>
+<pre><code>In LLM.__init__():
+self.lce = LigerFusedLinearCrossEntropyLoss()
+
+In LLM.forward():
+x_flat = x.reshape(-1, x.shape[-1])
+targets_flat = targets.reshape(-1)
+
+loss = self.lce(
+    self.lm_head.weight,
+    x_flat,
+    targets_flat
+)
+</code></pre>
+<p>I noticed something weird, these results are with <code>torch.compile</code> (fullgraph=False because liger kernel has graph breaks on .item()) on [32, 2048] inputs.</p>
+<pre><code>Linear Cross Entropy
+Step #0 | Time: 53.53s | Allocated: 14.90 GB | Peak: 45.54 GB | Reserved: 66.24 GB
+Step #1 | Time: 0.700s | Allocated: 14.90 GB | Peak: 55.47 GB | Reserved: 66.24 GB
+Step #2 | Time: 0.654s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 66.24 GB
+
+Regular Cross Entropy
+Step #0 | Time: 34.526s | Allocated: 14.90 GB | Peak: 19.87 GB | Reserved: 29.59 GB
+Step #1 | Time: 0.652s | Allocated: 14.90 GB | Peak: 29.03 GB | Reserved: 29.59 GB
+Step #2 | Time: 0.610s | Allocated: 14.90 GB | Peak: 14.90 GB | Reserved: 29.59 GB
+</code></pre>
+<p><code>torch.compile</code> asked me to add <code>torch._dynamo.config.capture_scalar_outputs = True</code> and I got</p>
+<pre><code>Linear Cross Entropy
+Step #0 | Time: 1.426s | Allocated: 14.97 GB | Peak: 19.93 GB | Reserved: 19.96 GB
+Step #1 | Time: 0.936s | Allocated: 14.97 GB | Peak: 25.37 GB | Reserved: 26.54 GB
+Step #2 | Time: 0.937s | Allocated: 14.97 GB | Peak: 25.37 GB | Reserved: 26.54 GB
+</code></pre>
+<p>What on gawd's green earth did I just witness... LCE is slower and hogs more memory? So, I turned <code>torch.compile</code> off and ran the bench again on [16, 2048] token inputs.</p>
+<pre><code>Linear Cross Entropy
+Step #0 | Input Size: [16, 2048] | Time: 1.440s | Reserved: 19.96 GB
+Step #1 | Input Size: [16, 2048] | Time: 0.939s | Reserved: 26.54 GB
+Step #2 | Input Size: [16, 2048] | Time: 0.943s | Reserved: 26.54 GB
+
+Regular Cross Entropy
+Step #0 | Input Size: [16, 2048] | Time: 0.992s | Reserved: 65.35 GB
+Step #1 | Input Size: [16, 2048] | Time: 0.825s | Reserved: 82.53 GB
+Step #2 | Input Size: [16, 2048] | Time: 0.828s | Reserved: 82.53 GB
+</code></pre>
+<p>Without <code>torch.compile</code>, LCE behaves more like the marketing claims: it trades ~10–15% more step time for a massive drop in reserved memory (from ~82 GB to ~27 GB in my config). Based on the math (16×2048×131072×2 bytes), I'd expect ~8GB less activation memory from logits. I honestly don't know what to make of these results. For now, let's skip this and try Apple's cut cross entropy.</p>
+<h4>Cut Cross Entropy</h4>
+<p>I’m very tempted to roll my own LCE kernel, but I want to exhaust all the easy wins first. Cut Cross entropy is by Apple, these are results with <code>torch.compile</code> with [64, 2048]:</p>
+<pre><code>Cut Cross Entropy (Vanilla)
+Step #0 | Batch Size: (64, 2048) | Time: 34.40s | Reserved Memory: 57.62 GB | Loss: 11.10
+Step #1 | Batch Size: (64, 2048) | Time: 2.844s | Reserved Memory: 58.69 GB | Loss: 9.118
+Step #2 | Batch Size: (64, 2048) | Time: 2.811s | Reserved Memory: 59.76 GB | Loss: 7.811
+
+Cut Cross Entropy (FP32 Accum)
+Step #0 | Batch Size: (64, 2048) | Time: 36.084s | Reserved Memory: 57.63 GB | Loss: 11.103
+Step #1 | Batch Size: (64, 2048) | Time: 3.042s | Reserved Memory: 58.70 GB | Loss: 9.091
+Step #2 | Batch Size: (64, 2048) | Time: 3.002s | Reserved Memory: 58.70 GB | Loss: 7.609
+
+Cut Cross Entropy (Kahan Sum)
+Step #0 | Batch Size: (64, 2048) | Time: 38.861s | Reserved Memory: 57.63 GB | Loss: 11.103
+Step #1 | Batch Size: (64, 2048) | Time: 3.694s | Reserved Memory: 58.70 GB | Loss: 9.097
+Step #2 | Batch Size: (64, 2048) | Time: 3.618s | Reserved Memory: 58.70 GB | Loss: 7.618
+
+Regular Cross Entropy
+Step #0 | Batch Size: (64, 2048) | Time: 55.47s | Reserved Memory: 73.76 GB | Loss: 11.10
+Step #1 | Batch Size: (64, 2048) | Time: 2.431s | Reserved Memory: 73.77 GB | Loss: 9.097
+Step #2 | Batch Size: (64, 2048) | Time: 2.371s | Reserved Memory: 73.77 GB | Loss: 7.616
+</code></pre>
+<p>Apple's implementation has a few good options to improve numerical stability (which I want to prioritize for similar convergence). For FP32 CCE vs Regular, memory drops by 23% (16GB) while step time increases by 41%. The experiment on my last blog used the default CCE implementation and it did not converge as well (I expect due to numerical instability).</p>
+<p>These are results with CCE vs baseline:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/9-cce-impl/cce-run.png?raw=true" alt="Cut Cross Entropy results vs. my baseline" /></p>
+<p>Verdict: for my 1B setup and current hyperparameters, chunked/fused cross-entropy hasn’t been worth it. The memory savings don’t compensate for the step-time hit and the convergence risk, so I’m not introducing it into this training run.</p>
+<h3>8-bit AdamW</h3>
+<p>I alluded to this in Part 1. I messed up the first experiment, so I re-ran it properly. Here are the results:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/adam-8vs32.png?raw=true" alt="Adam 8-bit vs 32-bit" /></p>
+<p>It seems to converge similarly, which is great given it saves a decent chunk of memory. The MFU drop is on the order of 0.1% and so, is negligible. Memory usage goes down because the optimizer states are stored in 8-bit instead of 32-bit. MFU drops by ~0.1% due to the extra de/quantization work each step.</p>
+<p>Verdict: If I need more memory for other parts in the step, I could introduce AdamW8bit. Even though it works empirically, I want to use the FP32 version as it is not lossy and has a slightly higher MFU.</p>
+<h3>FP8 Math</h3>
+<p>H100 (Hopper) supports FP8 (E4M3 &amp; E5M2) natively. I’ll keep master weights in FP32, but use FP8 for some linear layers to try to squeeze out more throughput. The de/quantization overhead will eat into the gains, but Hopper’s FP8 Tensor Cores should still help if we’re compute-bound.</p>
+<p>For now, let's only touch the linear layers from our model.</p>
+<h4>Nvidia's Transformer Engine</h4>
+<p>First things first, I love the intuitiveness of <a href="https://github.com/NVIDIA/TransformerEngine/blob/main/docs/examples/fp8_primer.ipynb">TE API</a> to do FP8 linear ops. However, in my setup TE gives me similar step time but higher reserved memory:</p>
+<pre><code>Step #2 | Input Size: [4, 2048] | Time: 0.151s | Reserved Memory: 37.98 GB | Loss: 10.239
+Step #3 | Input Size: [4, 2048] | Time: 0.141s | Reserved Memory: 42.28 GB | Loss: 9.975
+Step #4 | Input Size: [4, 2048] | Time: 0.141s | Reserved Memory: 42.28 GB | Loss: 10.071
+</code></pre>
+<p>This is the recipe I used:</p>
+<pre><code>fp8_recipe = DelayedScaling(
+    margin=1,
+    interval=1,
+    fp8_format=Format.HYBRID,
+    amax_history_len=16,
+)
+</code></pre>
+<p>I played around with the recipe hyperparams, but the performance profile barely moved. For this workload -&gt; not useful.</p>
+<h4>TorchAO</h4>
+<p>TorchAO is interesting, the first time I tried it I must have made a mistake in it's implementation, it gave me significantly worse numbers. So, I dove deeper into the docs and found an excellent function for fp8 which I previously overlooked. I like that it works with autocast and compile... makes life easy.</p>
+<p>All I had to do was add this after initializing the model:</p>
+<pre><code>ao_config = Float8LinearConfig.from_recipe_name(&quot;tensorwise&quot;)
+convert_to_float8_training(model.layers, config=ao_config)
+</code></pre>
+<p>On [64, 2048] token inputs, with the <code>tensorwise</code> recipe, step time reduced by 10% while memory dropped by 20%!!! <code>rowwise</code> recipe might be more numerically stable, on my perf bench it was 2% slower than baseline but with the 20% drop.</p>
+<p>Let's train it for 1k steps and see their performance:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/fp8-linear.png?raw=true" alt="FP8 Linear Graph vs FP32" /></p>
+<p>The convergence for rowwise might be better but tensorwise works as well while being faster.</p>
+<h4>FP8 Flash Attention</h4>
+<p>fp8 backward pass does not exist (only bf16/fp16 allowed), so I end up using SDPA. FWIW, I think FA3 was useful a few months back, PyTorch team likely improved <code>torch.compile</code> for Hopper. I could use Transformer Engine's FP8 attention but it likely introduces a graph break and might not give a lift worth the effort.</p>
+<hr>
+
+<h3>Custom Kernels?</h3>
+<p>I am out of ideas for torch-based 1xH100 optimizations. Let's see if our traces give us any clues on low-hanging fruit.</p>
+<p>This is the PyTorch profiler trace without <code>torch.compile</code>. Before producing this trace the profiler skips the first two train steps (to avoid capturing <code>torch.compile</code> overhead), warms up on the next three steps and finally, captures only the subsequent three steps.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/trace-no-compile.png?raw=true" alt="No torch.compile trace" /></p>
+<p>This is the trace with <code>torch.compile</code>.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/trace-first-look.png?raw=true" alt="torch.compile trace" /></p>
+<p>You can see a clear difference in how much python/cpu overhead each have. If you squint, you will also see the cuda_graph being run by python in the second graph. While the following profiles are from two different phases of the training step, they pinpoint kernel launch overhead.</p>
+<p>Without <code>torch.compile</code>:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/overhead-no-compile.png?raw=true" alt="Kernel launch overhead without torch.compile" /></p>
+<p>With <code>torch.compile</code>:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/overhead-compile.png?raw=true" alt="Kernel launch overhead with torch.compile" /></p>
+<p>While I am no Scott Gray (maybe one day), I can write decent custom kernels with Triton (it is actually easy to pick up). Looking at this compile trace, I don't think I can produce any meaningful MFU boosts on top of <code>torch.compile</code>'s progress.</p>
+<p>Actually, I will not give up so early, let's check nsys (Nvidia's profiler) to see these in more detail. I will let you read the goat's - Piotr Bialecki's - <a href="https://dev-discuss.PyTorch.org/t/using-nsight-systems-to-profile-gpu-workload/59">memorandum</a> to learn more about Nsight Systems.</p>
+<p>Quick setup:</p>
+<pre><code>1. Install Nsight Systems for your target distribution from the web
+2. Transfer to your cloud instance
+3. sudo dpkg -i nsight.deb
+4. Setup nvtx.push_range in your PyTorch code based on what you want to profile.
+5. Then, use the command I provide below.
+</code></pre>
+<p>Note: AI is not great at nsys for some reason. I had to debug my way to a good nsys profile on my cloud instance/setup, ChadGPT and Claude both asked me to stick to PyTorch profiling. I had to dig through old nvidia blogs, forums and new docs to piece concepts together (not as bad as i make it sound tbh). I used this to run the profiling on my bench:</p>
+<pre><code>/opt/nvidia/nsight-systems-cli/2025.5.1/bin/nsys profile \
+    -o profile \
+    -e NSYS_NVTX_PROFILER_REGISTER_ONLY=0 \
+    --capture-range=nvtx \
+    --capture-range-end=stop \
+    --nvtx-capture=CAPTURE_REGION \
+    --trace=cuda,nvtx,osrt,cudnn,cublas \
+    --force-overwrite=true \
+    python -m scratchpad.perf_bench
+</code></pre>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/nsys-quick-look.png?raw=true" alt="Nsys Profile View" /></p>
+<p>Let me do quick observations from this zoomed out look:</p>
+<ol>
+<li>The brown boxes are cudaSynchronize()'s and there are a bunch of them.</li>
+<li>My profile view starts from 82s because <code>torch.compile</code> ends at approx 82s and it looks like empty space before that, interesting stuff starts from 82s onwards.</li>
+<li>The turqouise bars are Memcpy Host (CPU) to Device (GPU) and purple is Device to Host. I am not sure but I think in the first 80s, <code>torch.compile</code> ran on a model with different fake inputs, and model compiled. 80s onwards is model running step #0, step #1 from 88s, step #2 from ~88.3s, etc.</li>
+<li>We can see that -&gt; 28% of the time are graph runs (good), 11.9% are individual kernels (not great) and 59% goes to memory (BAD).</li>
+</ol>
+<p>If you believed what I wrote in #4, well, you got got. Those percentages are over the entire run (model load + compilation + warmup + training), so they’re useless for understanding steady-state training. We only care about the per-step view after warmup. Here is what 2 warmed-up steps look like:</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/nsys-step-specific.png?raw=true" alt="Nsys Profile of Two Warmed Up Steps" /></p>
+<p>Observations:</p>
+<ol>
+<li>95% Graph use!!! &lt;0.1% Memory access times is a great indicator we are on a good track. 5.4% kernel time come from the optimizer which can't be optimized further.</li>
+</ol>
+<p>That's it, lads and lasses, there is not much else we can do, I think we are compute bound (another sign is nvidia-smi dmon shows &gt;=99% sm utilization). To be fair, compute bound doesn't mean you give up, it's a sign to get under the sheets with your algorithm and find ones that work better with your hardware (like Tri Dao did with Flash Attn 3). I am a bit disappointed I couldn't work my kernel magic but that will come when we get to the BLASphemous work - kernels that plain <code>torch.compile</code> cannot handle - in the future. I'll also be using Nsight Compute (not only Systems) software over the next few blogs.</p>
+<p>I also added profiling code to my pretraining file (instead of bench like above), this is the result I get:</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/nsys-pretrain.png?raw=true" alt="Nsys Profile of my pretraining code" /></p>
+<p>Note: I added <code>--cuda-graph-trace node</code> to my profile which introduces overhead but gives visibility into what kernels runs within the cuda graph as well.</p>
+<p>I also profiled a distributed run with 4 gpus.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/nsys-distributed.png?raw=true" alt="Nsys Profile of Distributed Run" /></p>
+<p>Notice, how there are many graphs instead of only two as in our non-distributed setting. Initially, I thought it could be an artifact from introducing DDP but on a closer look, the forward pass has graph breaks too??</p>
+<h3>Dataloader</h3>
+<p>I did not originally have this section but looking at the full view of my profiles, I noticed a big gap between the end of step 1's optimizer step and step 2's forward... which means I totally forgot to optimize the dataloader.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/nsys-dataload.png?raw=true" alt="" /></p>
+<p>This one is simple, these GPU nodes have a lot of CPUs, I put them to work, set <code>num_workers</code> on my DataLoader to 8 and <code>prefetch_factor</code> to 4 and we are back in business, 50% reduction in total time to load 50 batches of [64, 2048]. This should help just a lil on boosting MFU.</p>
+<p>My dataloader is not the best right now, I need to give more thought to what happens at checkpoint resumption for deterministic training. This is a later problem.</p>
+<h3>Overlapped DDP communication</h3>
+<p>I kept this as a separate section to emphasize that overlapping has already been taken care of by Torch DDP. The gradient bucket sizes were small enough and you can see in the image above all the blue boxes above each layer's backward pass's orange graph boxes... those are gradients being communicated in parallel to the next layer's backward pass. This is the standard DDP bucketed-allreduce pattern, it overlaps gradient comms for earlier layers with backward compute on later layers. Really beautiful work by torch team to give this out for free.</p>
+<h3>Compressed gradients in All Reduce</h3>
+<p>So torch.distributed has a hook to compress gradients to fp16 before an AllReduce. This cuts communication overhead by half! Gradients tolerate fp16 quantization reasonably well in practice (with scaling), so compressing them to fp16 before all-reduce is a common trick to halve communication volume.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/nsys-nccl-overhead.png?raw=true" alt="" /></p>
+<p>All other &quot;overhead&quot; goes away due to overlapping. Compressing gradient will likely save us 5ms out of 10ms that we see here? I don't think this is worth saving for now. Now, let's get to some more interesting experiments.</p>
+<h2>Training convergence</h2>
+<p>Faster training runs could be a result of not only higher training throughput but also faster convergence. I was tempted to use Muon in our last run but a good, simple baseline was the priority. In this blog, I want to reason through different hyperparams and try out Muon (especially now that it is a part of Torch). I only have a limited compute budget, so I refer to other works to shortcut some of this.</p>
+<h3>Learning rate</h3>
+<p>What Karpathy did in <a href="https://github.com/karpathy/nanochat/blob/master/nanochat/gpt.py#L213">Nanochat</a> was very interesting: assigning different learning rates for embedding &amp; LM head (to be used with AdamW), separate from the learning rate for Muon.</p>
+<p>We already have a baseline with 3e-4 (a.k.a Karpathy Constant). A very interesting trick in the industry is figuring out hyperparams on smaller models and scaling up/down based on attributes like sqrt(batch size ratio), depth ratio, etc.</p>
+<p>For example, look at Llama 3's hyperparam breakdown from their <a href="https://arxiv.org/pdf/2407.21783">paper</a>.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/llama-3-hyperparam.png?raw=true" alt="Llama-3 hyperparams" /></p>
+<p>This is totally a self-made explanation and the paper does not mention this... but notice how as the model gets bigger, learning rate is scaled by <code>4096 / model_dim</code>.</p>
+<pre><code>For model_dim=4096 : lr is 3e-4 
+For model_dim=8192 : lr is 3e-4 / 2 = 1.5e-4
+For model_dim=16384: lr is 3e-4 / 4 ≈ 8e-5.
+</code></pre>
+<p>Rough empirical heuristics from my chat with Claude: lr grows with batch size and often shrinks with depth. The Llama 3 table looks consistent with an lr ∝ 4096 / model_dim pattern, but that’s my interpretation, not a stated rule.</p>
+<p>Running hyperparam search on large models is very expensive, so we run it on smaller ones and calculate hyperparams for the larger ones based on heuristics.</p>
+<p>To make it even cheaper, my idea is to use an 8xA100 instead. I will be running grid search across 8xA100's with one experiment running on each A100. I will be using a [32, 2048] batch size and 8 hidden layers as opposed to [64, 2048] and 16 hidden layers on the H100.</p>
+<h4>WE HIT A SNAG</h4>
+<p>Do you notice the problem here?</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/8xa100-experiment-loss.png?raw=true" alt="" /></p>
+<p>The train/loss is way too low in the 1e-2 range. I don't really know how to debug this which is the next issue... I don't really have a validation metric.</p>
+<p>At first my thought was is my model training on the same batches, confirmed it not to be the case.</p>
+<p>After talking with Claude and reasoning through this a bit more, I am going to introduce a few more metrics to be logged:</p>
+<ul>
+<li>val/loss: load one set of data, run with torch.no_grad() the forward pass on it and get the loss.</li>
+<li>norm_per_param: Separate curves for embedding, lm_head, first and last decoder layer.</li>
+<li>grad_norm_per_param: Gradient of lm_head, embedding and a few layers before clipping.</li>
+<li>50 tokens generated after the sentence &quot;The meaning of life is &quot;</li>
+</ul>
+<p>I am hoping to catch weird patterns and reasoning through potential causes. I am very glad I have Claude beside me to cover my knowledge gap, 10 years back this would take a team of researchers scratching their heads for a while and reading through many papers. Simply having someone spitball investigation ideas is a massive boost, the onus of implementation and reasoning through it is still on me (and I enjoy that).</p>
+<p>This is what I see:</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/wandb-grad-problem.png?raw=true" alt="WandB gradient problem" /></p>
+<p>In all the <code>params/</code> graphs, something happens to each graph around step #500. Why?? I still couldn't triangulate where the error could be coming from. So, I logged a few more items:</p>
+<ul>
+<li>top1_acc: accuracy of the highest logit result</li>
+<li>raw_ce_fp32: Cross Entropy loss on a small subset of data (to avoid memory explosion) done with FP32 weights and inputs</li>
+</ul>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/wandb-grad-problem-2.png?raw=true" alt="Wandb gradient problem 2" /></p>
+<p>Now, the problem is visible. Notice how at step #500, fp32 cross entropy loss explodes while loss plummets. The model is funked up. There is a bug in my code in <code>model.py</code>:</p>
+<pre><code>if targets is not None:
+    loss = torch.nn.functional.cross_entropy(
+        logits.reshape(-1, logits.shape[-1]), 
+        targets.reshape(-1)
+    )
+    return loss
+else:
+    return logits
+</code></pre>
+<p>The bug: I was computing CE inside autocast, using bf16 logits. The bf16 CE quietly diverged while the “true” FP32 CE exploded around step 500. That made train loss look too good to be true.</p>
+<p>The fix: I need to take cross_entropy out of autocast and perform loss calculations in my train loop instead. This will cost me a ton of memory but should meaningfully improve my model. This bug in my larger run was silent, but in smaller models, such small bugs tend to explode and become salient. I tried FP16 + GradScaler but that did not help either.</p>
+<p>At this point I know I fudged up, a lot of the optimizations I made have to be reworked. On my 1xA100, doing CE outside of the loop is causing OOMs on OOMs, so, instead of training on [1, 2048], I trained on [32, 128] batches (smaller ctx length but good batch size for stability) to see if raw fp32 loss keeps going down. These were the results:</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/11-1b-model-p2/wandb-grad-solution.png?raw=true" alt="Wandb gradient solution" /></p>
+<p>Now, loss is going down, accuracy goes up... consistently.</p>
+<h2>Conclusion</h2>
+<p>I know this is an abrupt ending. I had way more planned for this article but the CE bug messed with my plans. I even considered not posting this but the ultimate point of this series is to take you through my journey of getting to SOTA along with the ups and downs. LR tuning will continue next blog.</p>
+<p>In this blog, my meaningful improvements were adding fp8 linears, making my dataloader faster via multi-processing, and fixing a gnarly bug which would have messed up all my future training runs.</p>
+<p>See you in the next one!</p>
+<p>Omkaar Kamath</p>
+
+    </main>
+    
+</body>
+</html>
