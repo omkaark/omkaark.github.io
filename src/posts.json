@@ -55,4 +55,10 @@
     "description": "I optimize the infra and architecture to be much better.",
     "slug": "llm-1b-2",
     "date": "2025-11-13"
+}, {
+    "name": "How to Train an LLM: Part 3",
+    "image": "11-1b-model-p3/headline.png",
+    "description": "I run many experiments architectural and others.",
+    "slug": "llm-1b-3",
+    "date": "2025-11-13"
 }]
