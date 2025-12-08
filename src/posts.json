@@ -45,20 +45,26 @@
     "date": "2025-10-16"
 }, {
     "name": "How to Train an LLM: Part 1",
-    "image": "10-1b-model-p1/how-to-train-a-llm.png",
+    "image": "10-1b-model-p1/headline.png",
     "description": "I train a 1B llama3-like LLM from scratch and built the accompanying infra to train it.",
     "slug": "llm-1b-1",
     "date": "2025-11-11"
 }, {
     "name": "How to Train an LLM: Part 2",
-    "image": "11-1b-model-p2/how-to-train-a-llm-2.png",
+    "image": "11-1b-model-p2/headline.png",
     "description": "I optimize the infra and architecture to be much better.",
     "slug": "llm-1b-2",
     "date": "2025-11-13"
 }, {
     "name": "How to Train an LLM: Part 3",
-    "image": "11-1b-model-p3/headline.png",
+    "image": "10-1b-model-p1/headline.png",
     "description": "I run many experiments architectural and others.",
     "slug": "llm-1b-3",
-    "date": "2025-11-13"
+    "date": "2025-11-25"
+}, {
+    "name": "How to Train an LLM: Part 4",
+    "image": "13-1b-model-p4/headline.png",
+    "description": "I train a model on 5B tokens.",
+    "slug": "llm-1b-4",
+    "date": "2025-12-8"
 }]
