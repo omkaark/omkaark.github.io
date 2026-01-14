@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
+            <title>Tinker for SFT - Omkaar Kamath</title>
+            <meta name="description" content="I run a small SFT job with a Qwen3 8B base model on FIM data with Tinker that makes the model go from 0% to 28% on my evals!">
+            <meta property="og:title" content="Tinker for SFT - Omkaar Kamath">
+            <meta property="og:description" content="I run a small SFT job with a Qwen3 8B base model on FIM data with Tinker that makes the model go from 0% to 28% on my evals!">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/tinker-fim.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/14-tinker/mood.png?raw=true">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="Tinker for SFT - Omkaar Kamath">
+            <meta name="twitter:description" content="I run a small SFT job with a Qwen3 8B base model on FIM data with Tinker that makes the model go from 0% to 28% on my evals!">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/14-tinker/mood.png?raw=true">
+        
+
+    <style>
+    /* ---------- TYPOGRAPHY SYSTEM (rem/em only) ---------- */
+:root {
+  /* One knob to rule them all. Change this in media query to scale everything. */
+  --base: 1rem;           /* 1rem = browser default (usually 16px) */
+  --scale: 1.25;          /* modular scale ratio: Major Third */
+
+  /* Precomputed steps off the base using the scale (no px anywhere) */
+  --step-0:  calc(var(--base) * 1.25);
+  --step-1:  calc(var(--base) * 1.4);
+  --step-2:  calc(var(--step-1) * 1.4);
+  --step-3:  calc(var(--step-2) * 1.4);
+  --step-4:  calc(var(--step-3) * 1.7);
+}
+
+/* On mobile, set ONE number (the base) and everything scales automatically */
+@media (max-width: 768px) {
+  :root {
+    --base: 0.95rem;   /* tighten all text ~5%. change to 0.90rem, 1.05rem, etc */
+  }
+}
+
+/* ---------- GLOBAL ---------- */
+html { font-size: 100%; } /* keep user/browser zoom respectful */
+body {
+  font-family: 'Courier New', 'Monaco', monospace;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: #000;
+  background: #fff;
+  width: 80vw;
+  max-width: 50rem; /* 800px -> 50rem for consistency */
+  margin: 0 auto;
+  padding: 2.5rem 0; /* 40px -> 2.5rem */
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  border-bottom: 0.125rem solid #000; /* 2px -> rem */
+  padding-bottom: 1.25rem;           /* 20px -> 1.25rem */
+}
+
+.name {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: 0.125rem; /* 2px -> rem */
+  text-transform: uppercase;
+}
+
+/* ---------- INDEX / POSTS LIST ---------- */
+.posts {
+  margin-bottom: 5rem;
+  font-size: var(--step-1);
+}
+
+.post {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem; /* 12px 20px */
+  margin: 1.25rem 0;       /* 20px */
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.post::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -100%;
+  width: 100%;
+  background: #FFFDD0;
+  transition: left 0.15s ease;
+  z-index: -1;
+}
+.post:hover::before { left: 0; }
+
+.post-hover-gif {
+  position: absolute;
+  height: 4rem;
+  width: 40rem;
+  background-image: url("https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/run.gif?raw=true");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: right;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 120ms ease-in;
+}
+
+.post-link:hover .post-hover-gif { 
+  opacity: 1; 
+}
+
+.post-title { flex: 1; margin-right: 1.25rem; }
+.post-link { color: #000; text-decoration: none; font-weight: 400; position: relative; }
+
+.post-date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+/* ---------- FOOTER ---------- */
+.footer {
+  border-top: 0.125rem solid #000;
+  padding-top: 1.25rem;
+  display: flex;
+  gap: 1.875rem; /* 30px */
+}
+
+.social-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem; /* 1px */
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+.social-link:hover { text-decoration: underline; }
+
+/* ---------- POST PAGE ---------- */
+.post-content {
+  margin-bottom: 5rem;
+  max-width: 50rem;
+  font-size: var(--step-0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 0.0625rem solid #000; /* 1px */
+}
+
+.back-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem;
+  font-weight: 700;
+  font-size: var(--step--1);
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Headings on the scale */
+.post-content h1 {
+  margin: 1.875rem 0 1.25rem; /* 30 0 20 */
+  font-size: var(--step-3);
+  line-height: 1.2;
+}
+
+.post-content h2 {
+  margin: 1.875rem 0 0.9375rem; /* 30 0 15 */
+  font-size: var(--step-2);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h3 {
+  margin: 1.5625rem 0 0.625rem; /* 25 0 10 */
+  font-size: var(--step-1);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h4 {
+  margin: 1.425rem 0 0.425rem; /* 25 0 10 */
+  font-size: var(--step-0);
+  line-height: 1.25;
+  width: 100%;
+}
+
+.post-content ul {
+  width: 90%;
+}
+
+.post-content p {
+  margin-bottom: 1.25rem; /* 20 */
+  line-height: 1.6;
+  font-size: var(--step-0);
+  font-family: Monaco, monospace;
+  width: 100%;
+}
+
+.post-content a { color: #000; text-decoration: underline; }
+.post-content a:hover { background: #f5f5dc; }
+
+/* Images unaffected by font scale, but spacings use rem for consistency */
+.post-content img {
+  margin: 1.25rem 0;
+  max-width: 100%;
+  max-height: 50rem;
+  border-radius: 0.5rem; /* 8px */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px #ccc dashed;
+  padding: 10px;
+}
+
+/* ---------- INLINE CODE ---------- */
+.post-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--step-0);
+  background: rgba(127,127,127,.12);
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  padding: .15em .4em;   /* em ties to current font-size */
+  border-radius: .35em;
+  word-break: break-word;
+}
+
+/* ---------- CODE BLOCKS ---------- */
+.post-content pre {
+  margin: 1.25rem 0;
+  padding: 0.875rem 1rem; /* 14px 16px */
+  border-radius: 0.75rem; /* 12px */
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  background: #f7f7f9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  tab-size: 2;
+  font-size: var(--step-0); /* control block base size */
+  line-height: 1.55;
+  width: 100%;
+}
+.post-content pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;   /* inherit from pre; keep scale intact */
+  line-height: 1.55;
+  display: block;
+  white-space: pre;
+}
+
+/* ---------- TABLES ---------- */
+.post-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 2rem 0;
+  font-size: var(--step-0);
+  font-family: Monaco, monospace;
+}
+
+.post-content th,
+.post-content td {
+  border: 0.0625rem solid #000; /* thin black grid */
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.post-content th {
+  background: #f5f5f5;
+  font-weight: 700;
+  letter-spacing: 0.03rem;
+  text-transform: uppercase;
+}
+
+.post-content tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.post-content tr:hover td {
+  background: #FFFDD0; /* same yellow hover as posts */
+  transition: background 120ms ease-in-out;
+}
+
+.post-content table code {
+  font-size: 0.95em;
+}
+
+/* ---------- RESPONSIVE LAYOUT ONLY (typography scales via --base) ---------- */
+@media (max-width: 768px) {
+  body { width: 95vw; padding: 1.25rem 0; }
+
+  .header { flex-direction: column; justify-items: center; }
+
+  .post {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.5rem 0.9375rem;
+    margin: 1.25rem 0.625rem;
+    background: #FFFDD0;
+  }
+  .post::before { display: none; }
+
+  .post-title { margin-right: 0; margin-bottom: 0.25rem; }
+
+  .footer { flex-wrap: wrap; gap: 0.9375rem; }
+
+  .post-meta { flex-direction: column; align-items: flex-start; gap: 0.625rem; }
+
+  .post-content { margin: 0 0.625rem; }
+
+  .post-link:hover .post-hover-gif { 
+    opacity: 0;
+  }
+
+  .post-content table {
+    font-size: calc(var(--step-0) * 0.9);
+  }
+
+  .post-content th,
+  .post-content td {
+    padding: 0.6rem 0.75rem;
+  }
+}
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
+        <div>
+            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
+            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
+            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
+        </div>
+    </header>
+
+    
+    <main class="post-content">
+        <h1>Tinker for SFT</h1>
+<p>TLDR; I had a successful finetune run with Tinker, I <a href="https://gist.github.com/omkaark/e8df777234dbd5011d9420e906ef04e2">open-sourced the code here</a> so you can create your own FIM finetunes.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/14-tinker/mood.png?raw=true" alt="Tom thinks about the next FIM completion" /></p>
+<p>I am working on data experiments to build a high-quality code completion model. I have a well-rounded eval ready to go. The only thing left is... spend time setting up the cloud env to run these experiments. sigh.</p>
+<p>So, I looked through different methods.</p>
+<p>&quot;Ah, I have heard a lot about unsloth, let's try that!&quot;: 5 mins of setup later, I get something along the lines of &quot;version mismatch error&quot;. Look online through the docs and I realized I can't be bothered with figuring out versioning for what was supposed to be a quick experiment :(</p>
+<p>&quot;Hmm... maybe TRL by Huggingface might be good?&quot; Take the trouble to get it on my own cloud gpus and start the experiment, one GPU is getting throttled for some reason?? I'm too lazy to get another GPU node and set everything up again. &quot;Forget it, let's go for hosted providers&quot; I say.</p>
+<p>Setting up GPU infra / distributed training to run data experiments is a slog. I enjoy infrastructure problems but I wanted a service where I pay them a little more than self-managed would have cost for skipping the setup hassle.</p>
+<p>I thought maybe I can use something like Fireworks AI, but then I remembered <a href="https://tinker-docs.thinkingmachines.ai">Tinker</a> from their <a href="https://thinkingmachines.ai/blog/lora/">LoRA article</a>.</p>
+<p>I initially wanted to try out DoRA (stay tuned for future article on this) but Tinker does not support that yet and TRL's FSDP with DoRA was not working straight away. So, I switched to LoRA for this experiment.</p>
+<h2>First impressions</h2>
+<p>I wanted to get setup with Tinker ASAP, so I looked through their cookbook and was a little overwhelmed. I then switched to their docs.</p>
+<p>My self-made metric to judge a platform like this is TTFC (Time-To-First-Checkpoint) for a dummy project or how quick I can get a working SFT run to study their API. I found their <a href="https://tinker-docs.thinkingmachines.ai/training-sampling">Pig-Latin example</a> in the docs helpful to get me up and running in the first 15 minutes.</p>
+<p>In past self-managed training runs, my workflow was to get the huggingface dataset, setup a dataloader for controlling batch-size, seq-len, etc. Tinker has a <code>Datum</code> object (example below) where I feed one sample of my dataset along with each token's weight or in SFT's case, same as attention mask. Because it's FIM SFT, I set up my prompt tokens with this format <code>{FIM_PREFIX}{sample['prefix']}{FIM_SUFFIX}{sample['suffix']}{FIM_MIDDLE}</code> and completion tokens with <code>{example['middle']}{tokenizer.eos_token}</code>.</p>
+<pre><code>return types.Datum(
+    model_input=types.ModelInput.from_ints(tokens=prompt_tokens),
+    loss_fn_inputs=dict(weights=masks, target_tokens=target_tokens)
+), len(tokens)
+</code></pre>
+<p>I setup a function which streams a bunch of data from a huggingface dataset, converts each sample to the datum type and constructs a batch based on max batch tokens. It's easy, I don't have to worry about OOMs / having GPUs fail midrun / getting throttled.</p>
+<p>For my particular use case (LoRA / small model), I could get it done for a bit cheaper with self-managed if I spend more time on setup, etc. But for small experiments like this, total cost of setup hell &gt;&gt; the amount of money I save.</p>
+<h2>Results</h2>
+<p>One small caveat when LoRA finetuning: I use vLLM's LoRA feature for the purposes of this blog, they seem to not support the unembedding (lm_head) layer having an adapter. So, set <code>train_unembed</code> arg to False when running <code>create_lora_training_client</code> if you plan to use vLLM for inference.</p>
+<p>To recap, for the purposes of this worklog, my goal is to LoRA SFT Qwen/Qwen-8B-Base on a ready-made <a href="https://huggingface.co/datasets/Etherll/code-fim-v2/viewer/default/train">FIM dataset</a>.</p>
+<h3>Qwen-8B Base</h3>
+<p>This was the performance of Qwen-8B-Base (non-SFT) on my evals:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/14-tinker/qwen-base-eval.png?raw=true" alt="Qwen8B-Base SFT results" /></p>
+<p>Here is a simple example completion from <code>Qwen-8B-Base</code>:</p>
+<pre><code>&lt;|fim_prefix|&gt;
+def hello_world():
+    &quot;&quot;&quot;Print Hello World&quot;&quot;&quot;
+    &lt;|fim_suffix|&gt;
+hello_world()
+&lt;|fim_middle|&gt;\n\n# + [markdown] id=\&quot;0123456789\&quot;\n# ## 1.2. Variables and Data Types\n#\n# In Python, variables are used to store data values. You can assign a value to a variable using the assignment operator `=`.\n\n# + id=\&quot;0123456789\&quot; outputId=\&quot;0123456789\&quot;\nx = ...
+</code></pre>
+<p>This is not shocking, notice how the results have proper AST a lot of the times still. The base model is trained on a lot code and likely does not even have FIM completion training giving us mixed results.</p>
+<h3>Qwen-8B Instruct</h3>
+<p>Let's try out the Qwen-8B (post-trained model):
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/14-tinker/qwen-instruct-eval.png?raw=true" alt="Qwen8B-Instruct SFT results" /></p>
+<p>Here is a simple example completion from <code>Qwen-8B</code>:</p>
+<pre><code>&lt;|fim_prefix|&gt;
+def hello_world():
+    &quot;&quot;&quot;Print Hello World&quot;&quot;&quot;
+    &lt;|fim_suffix|&gt;
+hello_world()
+&lt;|fim_middle|&gt;\n\nOkay, I need to write a Python function called hello_world that prints \&quot;Hello World\&quot;. Let me think. The function is supposed to be defined with def hello_world(): and then inside the function, there's a print statement. Wait, the example code shows the ...
+</code></pre>
+<p>It goes into thinking mode, etc. which is not what we want anyway. Most post-trained models today will be more geared towards agentic coding and so, this is expected.</p>
+<h3>My Qwen-8B LoRA</h3>
+<p>Finally, these are my results finetuning the base model on 10M tokens:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/14-tinker/qwen-lora-eval.png?raw=true" alt="Qwen8B-Base SFT results" /></p>
+<p>Here is a simple example completion from <code>Qwen-8B-Base-Lora</code>:</p>
+<pre><code>&lt;|fim_prefix|&gt;
+def hello_world():
+    &quot;&quot;&quot;Print Hello World&quot;&quot;&quot;
+&lt;|fim_suffix|&gt;
+hello_world()
+&lt;|fim_middle|&gt;    print(&quot;Hello World&quot;)
+</code></pre>
+<p>Successful!</p>
+<p>I spent $10 on this whole experiment (running my finetune job on 10M tokens + other smaller experiments).</p>
+<h2>Improvements for Tinker</h2>
+<p>Overall, I really liked the experience. Here are some improvements I would like to see:</p>
+<ul>
+<li>WandB logging support: I wanted to log granular details like entropy, etc. (similar to TRL) to understand the run better. Searching &quot;WandB&quot; in the docs did not lead to any solutions... but after this experiment was done, I found an example in their github cookbook! Mentioning this in the docs would be great.</li>
+<li>More ways of PEFT'ing: I initially wanted to finetune with DoRA, though there currently is no happy path solution for it even with other providers.</li>
+<li>Support for custom models: I want to upload my own model and run SFT on that. I understand that the system is highly optimized for LoRA + supported models, it would be awesome to upload custom models (safetensor compatible) though :)</li>
+</ul>
+<h2>What's next?</h2>
+<p>While I have a simple setup, I plan to adopt best practices from their cookbooks to improve my larger run's setup.</p>
+<p>As an aside, I love Tinker's business model. They have highly-skilled domain experts building the best system that is more performant, fasted time-to-market and cheaper than a self-managed setup. With their focus on RL, this is further exacerbated as setting up performant RL systems (like PipelineRL) is technical and takes time to get right, Tinker lets you be scrappy and still get SOTA. As long as they can bring in demand to have minimum GPUs idling, they will make a lot of money. I suspect there is lots of GPU liquidity being used so they can spin up and down to fill demand (they made a key hire from Modal too).</p>
+
+    </main>
+    
+</body>
+</html>
