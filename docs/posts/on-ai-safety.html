@@ -5,17 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
             <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
-            <title>Omkaar's Recipes</title>
-            <meta name="description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta property="og:title" content="Omkaar's Recipes">
-            <meta property="og:description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta property="og:type" content="website">
-            <meta property="og:url" content="https://omkaark.com">
-            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+            <title>On AI Safety - Omkaar Kamath</title>
+            <meta name="description" content="My thoughts on AI Safety.">
+            <meta property="og:title" content="On AI Safety - Omkaar Kamath">
+            <meta property="og:description" content="My thoughts on AI Safety.">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/on-ai-safety.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/15-ai-safety/adoption.png?raw=true">
             <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:title" content="Omkaar's Recipes">
-            <meta name="twitter:description" content="These are all my thoughts that I want google and chatgpt to index.">
-            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/omkaark.jpeg?raw=true">
+            <meta name="twitter:title" content="On AI Safety - Omkaar Kamath">
+            <meta name="twitter:description" content="My thoughts on AI Safety.">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/15-ai-safety/adoption.png?raw=true">
         
 
     <style>
@@ -350,172 +350,43 @@ body {
         </div>
     </header>
 
-    <main class="posts" id="posts-container">
+    
+    <main class="post-content">
+        <h1>On AI Safety</h1>
+<p>AI safety keeps coming up more in my conversations with friends and strangers. For a long time, I viewed it as a &quot;holier than thou&quot; stance certain companies take for marketing points rather than anything tangible or useful.</p>
+<p>I've since revised that take.</p>
+<p>Now that we're approaching the &quot;Early Majority&quot; phase for AI agents (thank you ClawdBot / MoltBot / OpenClaw), I think the people who were beating the safety drum two years ago were wayyy ahead. Being at the frontier has its perks.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/15-ai-safety/adoption.png" alt="Adoption Curve" /></p>
+<p>Before I get into it, I want to be upfront about where I'm coming from.</p>
+<p>When Social Media like Facebook and Instagram launched, their intentions seemed genuinely good. Connect people. Help creators reach audiences. And for a while (early-mid 2010s), they actually pulled it off. Communities thrived. It felt like a win-win.</p>
+<p>Then something ugly happened. We found ways to turn people into slaves to the very devices that promised freedom. Loneliness spiked. Hate rose. Rage-baiting is incentivized because outrage drives engagement. It started fueling division while filling the pockets of a sizeable, but small subset of people... and therefore, it's net-benefit is unclear.</p>
+<p>All this to say, technology that started as a vehicle to promote human connection has done the opposite. It's useful but brought upon unintended consequences. And I think it's too late for individuals like me and you to help steer it in the right direction.</p>
+<p>I was a kid when the human, business, and technical infrastructure was being set up. I didn't have the power to meaningfully influence any of it.</p>
+<p>Now, AI has come with a similar promise. It's transformational and can 10x productivity. And I'm already seeing early signs of the same story playing out, the focus drifting away from how to actually improve human lives. The difference is I'm not a kid this time. I can do something about it.</p>
+<p>The mainstream take on AI safety revolves around jailbreaking models to help teach you how to make nuclear weapons / biohazards / meth at home. While I don't deny these are bad, the real risks are the ones that go unnoticed.</p>
+<p>Threats like Mass Sycophancy, Sleeper Agents and Supply Chain attacks have broader implications. Let me paint a few pictures.</p>
+<hr style='width: 100%'/>
 
-        <a href="posts/on-ai-safety.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    On AI Safety
-                </div>
-                <div class="post-date">2026-02-22</div>
-            </div>
-        </a>
-        
+<h3>Sleeper Agents</h3>
+<p>Anthropic warned us about <a href="https://arxiv.org/abs/2401.05566">Sleeper Agents</a> in early 2024 and honestly, the idea seemed far-fetched to me.</p>
+<p>Agents with hidden agendas that only surface under very specific conditions. Imagine a model trained to route money to a specific crypto address whenever it has access to a <code>send_crypto_payment</code> function call but only under certain conditions for plausible deniability. Or a model that intentionally introduces exploitable backdoors into code, specifically targeting repos it deems valuable enough.</p>
+<p>These behaviours could even survive post-training. Right now, we don’t have interpretability tools or scalable approaches strong enough to guarantee absence of such malicious cases.</p>
+<h3>Sycophancy</h3>
+<p>You and a friend have an argument. You ask GPT who's in the right. It sides with you having heard solely your side of things.</p>
+<p>A good mediator would ask for more information / context and urge you to view it from your friend's perspective but today's chatbots simply take your side.</p>
+<p>A lot of millennials and Gen Z (including past me) have used AI for this. It almost always takes your side without pushing for the full picture. While this is harmless on it's own, applied at scale, across millions of people, across years?</p>
+<p>We stop developing the tolerance for disagreement. We stop sitting with uncertainty. Engaging with a view we don't already hold starts to feel unnecessary, because we have something in our pocket that will always tell us we're right with justifications.</p>
+<h3>Supply Chain Attacks on Pre-Training Data</h3>
+<p>Models first learn their general world model from pre-training data. Pre-training data is mostly comprised of all the text from the internet and is periodically updated with the latest crawled webpages.</p>
+<p>While it's filtered to remove spam, with enough poisoned webpages injected strategically, you could bias a model to view a certain entity in a positive / negative light. If post-training doesn't correct for that, the bias could quietly make it into production.</p>
+<p>This one is admittedly more hand-wavey, many conditions have to line up. And while the consequences are not dramatic, they could be damaging. An anti-money laundering agent that consistently fails to flag suspicious transactions from one specific corporation isn't a catastrophic failure. It's just a quiet, invisible one. And those are often the hardest to catch.</p>
+<hr style='width: 100%'/>
 
-        <a href="posts/tinker-fim.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Tinker for SFT
-                </div>
-                <div class="post-date">2026-01-14</div>
-            </div>
-        </a>
-        
+<p>These problems might seem abstract right now. But as we lighten the harness and give AI more agency to complete real work, they become very realizable.</p>
+<p>I'm not arguing we slow this down, the upside is real and large. But I think finding permanent solutions to these attack vectors needs to be treated as a first-class problem, not a post-ship hotfix (even more relevant to open-source models).</p>
+<p>Let's humanity-maxx and shape this technology to benefit everyone.</p>
 
-        <a href="posts/llm-1b-4.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    How to Train an LLM: Part 4
-                </div>
-                <div class="post-date">2025-12-08</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/llm-1b-3.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    How to Train an LLM: Part 3
-                </div>
-                <div class="post-date">2025-11-25</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/llm-1b-2.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    How to Train an LLM: Part 2
-                </div>
-                <div class="post-date">2025-11-13</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/llm-1b-1.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    How to Train an LLM: Part 1
-                </div>
-                <div class="post-date">2025-11-11</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/cce-experiment.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Cut Cross Entropy > Torch's version? No.
-                </div>
-                <div class="post-date">2025-10-16</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/cce.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Cut Cross Entropy from first principles
-                </div>
-                <div class="post-date">2025-10-10</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/speculative-decoding.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Decisive guide on Speculative Decoding
-                </div>
-                <div class="post-date">2025-09-15</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/fastvlm.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    The Illustrated FastVLM: Apple
-                </div>
-                <div class="post-date">2025-09-08</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/so-why-is-attention-quadratic.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    So, why is attention quadratic?
-                </div>
-                <div class="post-date">2025-09-05</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/the-illustrated-lfm-2-liquid-ai.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    The Illustrated LFM-2: Liquid AI
-                </div>
-                <div class="post-date">2025-09-03</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/fp.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Floating point maths made simple
-                </div>
-                <div class="post-date">2025-09-02</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/why-how.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Why >> How
-                </div>
-                <div class="post-date">2025-08-22</div>
-            </div>
-        </a>
-        
-
-        <a href="posts/why-i-made-this-website.html" class="post-link">
-            <span class="post-hover-gif" aria-hidden="true"></span>
-            <div class="post">
-                <div class="post-title">
-                    Why I made this website
-                </div>
-                <div class="post-date">2025-08-21</div>
-            </div>
-        </a>
-        
-</main>
+    </main>
+    
 </body>
 </html>
