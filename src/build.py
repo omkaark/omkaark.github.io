@@ -306,7 +306,16 @@ def build_site():
     except Exception as e:
         print(f"Error writing CNAME: {e}")
         return False
-    
+
+    # Copy all folders from artifacts to docs
+    artifacts_dir = Path(Path(__file__).parent.parent, 'artifacts')
+    if artifacts_dir.exists():
+        for item in artifacts_dir.iterdir():
+            if item.is_dir():
+                dest = dist_dir / item.name
+                shutil.copytree(item, dest)
+                print(f"-> Copied artifacts/{item.name}/")
+
     print()
     print(f"- Site built successfully!")
     print(f"- Index page: docs/index.html")

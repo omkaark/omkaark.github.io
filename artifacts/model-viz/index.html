@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArchViz — ML Architecture Diagrams</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f4f5f8;--ed-bg:#181825;--ed-text:#cdd6f4;
+  --border:#dfe2e8;--accent:#7c5cfc;--text:#1a1a2e;--muted:#6b7280;
+  --canvas:#eef0f5;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+.app{display:flex;height:100vh}
+.ed{width:440px;min-width:320px;background:var(--ed-bg);display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.05)}
+.ed-head{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px}
+.logo{font-size:16px;font-weight:700;color:#fff;letter-spacing:-.4px}.logo span{color:var(--accent)}
+.tag{font-size:9px;font-weight:600;color:var(--accent);background:rgba(124,92,252,.14);padding:2px 7px;border-radius:4px;letter-spacing:.5px;text-transform:uppercase}
+.bar{padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:5px;flex-wrap:wrap}
+.bar button{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 11px;border-radius:5px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s}
+.bar button:hover{background:rgba(124,92,252,.18);border-color:rgba(124,92,252,.3);color:#fff}
+.bar button.on{background:rgba(124,92,252,.22);border-color:var(--accent);color:#fff}
+#editor{flex:1;background:0;color:var(--ed-text);font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.75;padding:16px 20px;border:0;outline:0;resize:none;tab-size:2;overflow-y:auto}
+#editor::selection{background:rgba(124,92,252,.3)}
+.ed-foot{padding:8px 20px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
+.hint{font-size:10px;color:rgba(255,255,255,.22);font-family:'IBM Plex Mono',monospace}
+.st{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:4px}
+.st.ok{color:#6DC28E;background:rgba(109,194,142,.1)}.st.err{color:#e45a6b;background:rgba(228,90,107,.1)}
+.help-row{padding:4px 20px 0;display:flex;justify-content:flex-end}
+.help-toggle{font-size:10px;color:rgba(255,255,255,.32);cursor:pointer;text-decoration:underline;font-family:'IBM Plex Mono',monospace}
+.help-toggle:hover{color:rgba(255,255,255,.55)}
+.help{display:none;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px;line-height:1.6;color:rgba(255,255,255,.42);font-family:'IBM Plex Mono',monospace;max-height:230px;overflow-y:auto}
+.help.open{display:block}
+.help code{color:rgba(255,255,255,.65);background:rgba(255,255,255,.06);padding:1px 4px;border-radius:3px}
+.help h4{color:rgba(255,255,255,.55);margin:6px 0 2px;font-size:11px}
+.cv{flex:1;background:var(--canvas);position:relative;overflow:hidden}
+.cv-head{position:absolute;top:0;left:0;right:0;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;z-index:10;background:linear-gradient(var(--canvas) 60%,transparent);pointer-events:none}
+.cv-head>*{pointer-events:auto}
+.cv-title{font-size:12px;font-weight:600;color:var(--muted)}
+.cv-btns{display:flex;gap:5px}
+.cv-btns button{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:4px}
+.cv-btns button:hover{border-color:var(--accent);color:var(--accent)}
+#canvas{width:100%;height:100%;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:55px 40px 40px}
+textarea::-webkit-scrollbar,#canvas::-webkit-scrollbar{width:5px}
+textarea::-webkit-scrollbar-track,#canvas::-webkit-scrollbar-track{background:0}
+textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:3px}
+#canvas::-webkit-scrollbar-thumb{background:rgba(0,0,0,.1);border-radius:3px}
+.grip{width:4px;cursor:col-resize;background:0;transition:background .2s;flex-shrink:0}
+.grip:hover,.grip.on{background:var(--accent)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="ed" id="edPanel">
+    <div class="ed-head">
+      <div class="logo">Arch<span>Viz</span></div>
+      <div class="tag">v4</div>
+    </div>
+    <div class="bar">
+      <button onclick="load('custom')" class="on" id="btn-custom">Custom</button>
+      <button onclick="load('llama')" class="on" id="btn-llama">LLaMA</button>
+      <button onclick="load('transformer')" id="btn-transformer">Transformer</button>
+      <button onclick="load('vit')" id="btn-vit">ViT</button>
+      <button onclick="load('resnet')" id="btn-resnet">ResNet</button>
+    </div>
+    <div class="help-row"><span class="help-toggle" onclick="document.getElementById('hp').classList.toggle('open')">DSL reference ▾</span></div>
+    <div class="help" id="hp">
+      <h4>Nodes</h4>
+      <code>Label color</code> — rectangle<br>
+      <code>Label "note" color</code> — with sublabel<br>
+      <code>Label color circle</code> — circle<br>
+      <code>empty</code> or <code>empty circle</code> — invisible spacer (for alignment)<br>
+      Colors: <code>pink green blue orange white gray purple yellow red teal cyan</code>
+      <h4>Structure</h4>
+      <code>serial</code> / <code>end</code> — explicit vertical stack<br>
+      <code>parallel</code> / <code>end</code> — side by side<br>
+      <code>group "Name" repeat=N color=red</code> / <code>end</code><br>
+      <code>residual</code> / <code>end</code> — skip + ⊕<br>
+      <h4>Side input</h4>
+      <code>Main ... &lt;~ Side ...</code>
+    </div>
+    <textarea id="editor" spellcheck="false"></textarea>
+    <div class="ed-foot">
+      <span class="hint">Live preview</span>
+      <span class="st ok" id="status">✓ OK</span>
+    </div>
+  </div>
+  <div class="grip" id="grip"></div>
+  <div class="cv">
+    <div class="cv-head">
+      <div class="cv-title">Preview</div>
+      <div class="cv-btns">
+        <button onclick="doExport('svg')">⬇ SVG</button>
+        <button onclick="doExport('png')">⬇ PNG</button>
+      </div>
+    </div>
+    <div id="canvas"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ═══════════════════════════════════════════════════════════
+  //  ArchViz v4 — Aesthetic & Layout Overhaul
+  // ═══════════════════════════════════════════════════════════
+  //
+  //  Fixes applied:
+  //   1. Residual merge = plain + inside circle (no ⊕ glyph)
+  //   2. "empty" spacer block for parallel alignment
+  //   3. Bypass arrow T-junctions from midpoint of first child's top edge
+  //   4. Group labels on RIGHT edge, not left
+  //   5. Strict parallel Y-alignment: all siblings share same topY
+  //   6. Arrows hit exact horizontal center of every node
+  //   7. Group has reserved title-zone; splits happen below it
+  //   8. Global spine alignment via column-center propagation
+  //
+  //  Modules:
+  //   1. Config   2. Palette   3. Parser   4. Layout
+  //   5. Routing  6. Renderer  7. Examples  8. App
+
+  // ───────────────────────────────────────────────────────────
+  //  1. CONFIG
+  // ───────────────────────────────────────────────────────────
+
+  const CFG = {
+    nodeW:         210,
+    nodeH:          42,
+    nodeHSub:       54,
+    circleR:        16,
+
+    arrowStroke:    1.5,
+    arrowColor:     '#3A3A3A',
+    arrowGap:       0,       // arrows touch node edges
+
+    hGap:           24,
+    vGap:           25,      // vertical gap between nodes (arrow length)
+
+    parallelPadTop: 25,      // extra space before parallel (split arrows become double)
+    parallelPadBot: 25,      // extra space after parallel (merge arrows become double)
+
+    groupPadX:      28,
+    groupPadTop:    50,      // space for internal entry arrow (double length)
+    groupPadBot:    25,      // space for internal exit arrow
+
+    residualPad:    46,
+    residualAddGap: 25,      // gap before addition circle
+    residualPadBot: 25,      // extra space after addition circle (exit arrow becomes double)
+
+    sideGap:        46,
+
+    cornerR:        9,
+    repeatColor:    '#444',
+    addFill:        '#FFFFFF',
+    addStroke:      '#4A4A4A',
+
+    font:           "'DM Sans', sans-serif",
+    mono:           "'IBM Plex Mono', monospace",
+    fontSize:       13.5,
+    subFont:        10.5,
+    groupLabelFont: 11.5,
+
+    pillPadX:       12,      // horizontal padding for pill shape
+    pillPadY:       6,       // vertical padding for pill shape
+    pillFontSize:   12,      // font size inside pill
+    pillCharWidth:  7,       // approximate character width for sizing
+  };
+
+  // ───────────────────────────────────────────────────────────
+  //  2. PALETTE
+  // ───────────────────────────────────────────────────────────
+
+  const PALETTE = {
+    pink:   { fill:'#F9C0CE', stroke:'#E07D95', text:'#6B1A30' },
+    green:  { fill:'#BBE8CB', stroke:'#5CB87A', text:'#1C5A32' },
+    blue:   { fill:'#A5D3F0', stroke:'#4FA3D4', text:'#1A3F5C' },
+    orange: { fill:'#FDDCB0', stroke:'#DDA74E', text:'#6B4C1A' },
+    white:  { fill:'#FFFFFF', stroke:'#555555', text:'#333333' },
+    gray:   { fill:'#E0E3EA', stroke:'#8B90A0', text:'#333333' },
+    purple: { fill:'#D4C0F9', stroke:'#9B7DE0', text:'#3D1A6B' },
+    yellow: { fill:'#FDE8A0', stroke:'#D4B44E', text:'#6B5C1A' },
+    red:    { fill:'#F9B0B0', stroke:'#E06060', text:'#6B1A1A' },
+    teal:   { fill:'#A0E8E0', stroke:'#4DB8A8', text:'#1A5C50' },
+    cyan:   { fill:'#A0E0F0', stroke:'#4DB0D0', text:'#1A4C5C' },
+  };
+
+  const GROUP_PAL = {
+    default:{ border:'#9098A8', bg:'rgba(180,190,210,0.18)' },
+    red:    { border:'#D94F5E', bg:'rgba(248,200,208,0.18)' },
+    blue:   { border:'#4FA3D4', bg:'rgba(165,211,240,0.15)' },
+    green:  { border:'#5CB87A', bg:'rgba(187,232,203,0.15)' },
+    purple: { border:'#8B5CF6', bg:'rgba(139,92,246,0.10)' },
+    orange: { border:'#DDA74E', bg:'rgba(253,220,176,0.15)' },
+  };
+
+  const COLOR_NAMES = new Set(Object.keys(PALETTE));
+  const SHAPE_NAMES = new Set(['circle', 'rect', 'pill']);
+  const getColor      = n => PALETTE[n] || PALETTE.gray;
+  const getGroupColor = n => GROUP_PAL[n] || GROUP_PAL.default;
+
+  // ───────────────────────────────────────────────────────────
+  //  3. PARSER
+  // ───────────────────────────────────────────────────────────
+
+  function parse(src) {
+    const lines = src.split('\n');
+    const root = { type:'seq', children:[] };
+    const stack = [root];
+    const top = () => stack[stack.length - 1];
+    const errors = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i].trim();
+      if (!t || t.startsWith('#')) continue;
+      try {
+        if (t === 'end') {
+          if (stack.length > 1) stack.pop();
+          else errors.push(`Line ${i+1}: unexpected 'end'`);
+          continue;
+        }
+        if (t === 'parallel') {
+          const n = { type:'parallel', children:[] };
+          top().children.push(n); stack.push(n); continue;
+        }
+        if (t === 'serial') {
+          const n = { type:'serial', children:[] };
+          top().children.push(n); stack.push(n); continue;
+        }
+        if (/^residual\b/.test(t)) {
+          const n = { type:'residual', children:[], from:'node' };
+          const mm = t.match(/from=(mid|node)/);
+          if (mm) n.from = mm[1];
+          top().children.push(n); stack.push(n); continue;
+        }
+        if (/^group\b/.test(t)) {
+          const n = { type:'group', children:[], label:'', repeat:null, color:'default' };
+          const m1 = t.match(/"([^"]+)"/);   if (m1) n.label  = m1[1];
+          const m2 = t.match(/repeat=(\w+)/); if (m2) n.repeat = m2[1];
+          const m3 = t.match(/color=(\w+)/);  if (m3) n.color  = m3[1];
+          top().children.push(n); stack.push(n); continue;
+        }
+        // Empty spacer: invisible placeholder for alignment (e.g., "empty" or "empty circle")
+        if (t === 'empty' || t.startsWith('empty ')) {
+          const node = { type:'empty', shape:'rect' };
+          const tokens = t.split(/\s+/).filter(Boolean);
+          tokens.forEach(tok => {
+            if (SHAPE_NAMES.has(tok.toLowerCase())) node.shape = tok.toLowerCase();
+          });
+          top().children.push(node);
+          continue;
+        }
+        top().children.push(parseNodeLine(t));
+      } catch(e) {
+        errors.push(`Line ${i+1}: ${e.message}`);
+      }
+    }
+    return { ast: root, errors };
+  }
+
+  function parseNodeLine(line) {
+    let mainStr = line, sideStr = null;
+    const si = line.indexOf('<~');
+    if (si !== -1) { mainStr = line.slice(0,si).trim(); sideStr = line.slice(si+2).trim(); }
+    const node = parseNodePart(mainStr);
+    if (sideStr) node.side = parseNodePart(sideStr);
+    return node;
+  }
+
+  function parseNodePart(str) {
+    const n = { type:'node', label:'', sublabel:'', color:'gray', shape:'rect', side:null };
+    const qm = str.match(/"([^"]+)"/);
+    if (qm) { n.sublabel = qm[1]; str = str.replace(/"[^"]+"/, '').trim(); }
+    const tokens = str.split(/\s+/).filter(Boolean);
+    while (tokens.length > 1) {
+      const last = tokens[tokens.length - 1].toLowerCase();
+      if (SHAPE_NAMES.has(last))      { n.shape = last; tokens.pop(); continue; }
+      if (COLOR_NAMES.has(last))      { n.color = last; tokens.pop(); continue; }
+      break;
+    }
+    n.label = tokens.join(' ');
+    if (!n.label) throw new Error('Node label missing');
+    return n;
+  }
+
+  // ───────────────────────────────────────────────────────────
+  //  4. LAYOUT ENGINE
+  // ───────────────────────────────────────────────────────────
+  //
+  //  measure(n) → sets n.w, n.h
+  //  position(n, x, y) → sets n.x, n.y, n.cx, n.topY, n.botY
+  //
+  //  Key fix: parallel enforces IDENTICAL topY for all children
+  //  by using the max height and centering vertically, ensuring
+  //  the top baseline aligns perfectly.
+
+  const nH = n => n.sublabel ? CFG.nodeHSub : CFG.nodeH;
+
+  function sideWidth(n) {
+    if (!n.side) return 0;
+    return (n.side.shape === 'circle' ? CFG.circleR * 2 : CFG.nodeW * 0.5) + CFG.sideGap;
+  }
+
+  function doLayout(ast) {
+    measure(ast);
+    position(ast, 0, 0);
+    return ast;
+  }
+
+  function measure(n) {
+    switch (n.type) {
+
+      case 'empty': {
+        // Invisible spacer — dimensions based on shape
+        // Height will be forced by parallel's alignment pass
+        if (n.shape === 'circle') {
+          n.w = CFG.circleR * 2;
+          n.h = CFG.circleR * 2;
+        } else if (n.shape === 'pill') {
+          // Use same size as a typical 4-char pill (like "SiLU")
+          n._pillW = 4 * CFG.pillCharWidth + CFG.pillPadX * 2;
+          n._pillH = CFG.circleR * 2;  // Same height as circle
+          n.w = n._pillW;
+          n.h = n._pillH;
+        } else {
+          n.w = CFG.nodeW;
+          n.h = CFG.nodeH;
+        }
+        break;
+      }
+
+      case 'seq':
+      case 'serial':
+      case 'group':
+      case 'residual': {
+        n.children.forEach(measure);
+        let h = 0, w = 0;
+        n.children.forEach((c, i) => {
+          c._oy = h;
+          const isLast = i === n.children.length - 1;
+          h += c.h + (isLast ? 0 : CFG.vGap);
+          w = Math.max(w, c.w);
+        });
+
+        if (n.type === 'residual') {
+          h += CFG.residualAddGap + CFG.circleR * 2 + CFG.residualPadBot;
+          n._cw = w;
+          n.w = w + CFG.residualPad * 2;  // Pad BOTH sides for symmetric layout
+          n.h = h;
+        } else if (n.type === 'group') {
+          // If first child is parallel, skip its top padding to avoid stacking with groupPadTop
+          const first = n.children[0];
+          if (first && first.type === 'parallel') {
+            first._skipTopPad = true;
+            // Adjust _oy of siblings after the parallel (they were positioned based on full parallel.h)
+            for (let i = 1; i < n.children.length; i++) {
+              n.children[i]._oy -= CFG.parallelPadTop;
+            }
+            h -= CFG.parallelPadTop;
+          }
+          // If last child is parallel or residual, skip groupPadBot to avoid stacking
+          const last = n.children[n.children.length - 1];
+          if (last && last.type === 'parallel') {
+            last._skipBotPad = true;
+          }
+          // Check if last child is residual - its residualPadBot serves as bottom padding
+          const skipGroupPadBot = last && (last.type === 'residual' || last.type === 'parallel');
+          n._iw = w; n._ih = h;
+          n.w = w + CFG.groupPadX * 2;
+          n.h = h + CFG.groupPadTop + (skipGroupPadBot ? 0 : CFG.groupPadBot);
+        } else {
+          n.w = w; n.h = h;
+        }
+        break;
+      }
+
+      case 'parallel': {
+        n.children.forEach(measure);
+        let w = 0, maxH = 0;
+        n.children.forEach((c, i) => {
+          c._ox = w;
+          w += c.w + (i < n.children.length - 1 ? CFG.hGap : 0);
+          maxH = Math.max(maxH, c.h);
+        });
+        // Force all children to maxH so they share the same baseline
+        n.children.forEach(c => { c.h = maxH; });
+        n.w = w;
+        n.h = maxH + CFG.parallelPadTop + CFG.parallelPadBot;
+        n._maxH = maxH;
+        break;
+      }
+
+      case 'node': {
+        const extra = sideWidth(n);
+        if (n.shape === 'circle') {
+          const d = CFG.circleR * 2;
+          n.w = Math.max(d + extra, CFG.nodeW);
+          n.h = d + (n.sublabel ? n.sublabel.split('\\n').length * 14 + 2 : 0);
+        } else if (n.shape === 'pill') {
+          // Pill: auto-fit width based on text length, same height as circle
+          const textW = n.label.length * CFG.pillCharWidth;
+          n._pillW = textW + CFG.pillPadX * 2;
+          n._pillH = CFG.circleR * 2;  // Same height as circle
+          n.w = Math.max(n._pillW + extra, CFG.nodeW);
+          n.h = n._pillH;
+        } else {
+          n.w = CFG.nodeW + extra;
+          n.h = nH(n);
+        }
+        break;
+      }
+    }
+  }
+
+  function position(n, x, y) {
+    n.x = x; n.y = y;
+
+    switch (n.type) {
+
+      case 'empty': {
+        n.cx = x + n.w / 2;
+        n.topY = y;
+        n.botY = y + n.h;
+        break;
+      }
+
+      case 'seq':
+      case 'serial': {
+        const mx = x + n.w / 2;
+        n.children.forEach(c => position(c, mx - c.w / 2, y + c._oy));
+        n.cx  = mx;
+        n.topY = n.children.length ? n.children[0].topY : y;
+        n.botY = n.children.length ? n.children[n.children.length - 1].botY : y + n.h;
+        break;
+      }
+
+      case 'group': {
+        const mx = x + CFG.groupPadX + n._iw / 2;
+        n.children.forEach(c => position(c, mx - c.w / 2, y + CFG.groupPadTop + c._oy));
+        n.cx  = x + n.w / 2;
+        n.topY = y;              // Group's top border
+        n.botY = y + n.h;        // Group's bottom border
+        break;
+      }
+
+      case 'residual': {
+        const contentX = x + CFG.residualPad;
+        const mx = contentX + n._cw / 2;
+        n.children.forEach(c => position(c, mx - c.w / 2, y + c._oy));
+
+        const last = n.children[n.children.length - 1];
+        const baseY = last ? last.botY : y;
+        n._addCx = mx;
+        n._addCy = baseY + CFG.residualAddGap + CFG.circleR;
+
+        n.cx = x + n.w / 2;  // Bounding box center (equals mx with symmetric padding)
+        n.topY = n.children.length ? n.children[0].topY : y;
+        n.botY = n._addCy + CFG.circleR + CFG.residualPadBot;
+        break;
+      }
+
+      case 'parallel': {
+        // All children start at the SAME y (strict horizontal baseline)
+        // Offset by parallelPadTop to create space for longer split arrows
+        // Skip top padding if this parallel is first child of a group (to avoid stacking)
+        const topPad = n._skipTopPad ? 0 : CFG.parallelPadTop;
+        n.children.forEach(c => {
+          position(c, x + c._ox, y + topPad);
+        });
+        n.cx  = x + n.w / 2;
+        n.topY = y;
+        n.botY = y + n.h;
+        break;
+      }
+
+      case 'node': {
+        const extra = sideWidth(n);
+        const mainW = n.w - extra;
+
+        if (n.shape === 'circle') {
+          n._cx = x + mainW / 2;
+          n._cy = y + CFG.circleR;
+          n.cx  = n._cx;
+          n.topY = y;
+          n.botY = y + CFG.circleR * 2;
+        } else if (n.shape === 'pill') {
+          n.cx  = x + mainW / 2;
+          n.topY = y;
+          n.botY = y + n._pillH;
+        } else {
+          n.cx  = x + mainW / 2;
+          n.topY = y;
+          n.botY = y + nH(n);
+        }
+
+        if (n.side) {
+          const s = n.side;
+          const mainCy = n.shape === 'circle' ? n._cy : y + nH(n) / 2;
+          const sNodeW = s.shape === 'circle' ? CFG.circleR * 2 : CFG.nodeW * 0.5;
+          const sx = x + mainW + CFG.sideGap / 2 + sNodeW / 2;
+          s._cx = sx; s._cy = mainCy;
+          s.cx = sx;
+          s.topY = mainCy - CFG.circleR;
+          s.botY = mainCy + CFG.circleR;
+        }
+        break;
+      }
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────
+  //  5. ROUTING (entry/exit points)
+  // ───────────────────────────────────────────────────────────
+
+  // Entry/exit points for GROUP BOUNDARIES (stop at group border)
+  function entryPoints(n) {
+    if (!n) return [];
+    if (n.type === 'empty') return [{ x: n.cx, y: n.topY }];
+    if (n.type === 'node')  return [{ x: n.cx, y: n.topY }];
+    if (n.type === 'parallel') return n.children.flatMap(entryPoints);
+    // Groups return their TOP border (new!)
+    if (n.type === 'group') {
+      return [{ x: n.cx, y: n.y }];
+    }
+    if (n.type === 'seq' || n.type === 'serial' || n.type === 'residual') {
+      const first = n.children && n.children.length ? n.children[0] : null;
+      if (!first) return [{ x: n.cx, y: n.topY }];
+      return entryPoints(first);
+    }
+    return [{ x: n.cx, y: n.topY }];
+  }
+
+  function exitPoints(n) {
+    if (!n) return [];
+    if (n.type === 'empty') return [{ x: n.cx, y: n.botY }];
+    if (n.type === 'node')  return [{ x: n.cx, y: n.botY }];
+    if (n.type === 'parallel') return n.children.flatMap(exitPoints);
+    // Groups return their BOTTOM border (new!)
+    if (n.type === 'group') {
+      return [{ x: n.cx, y: n.y + n.h }];
+    }
+    if (n.type === 'seq' || n.type === 'serial') {
+      const last = n.children && n.children.length ? n.children[n.children.length - 1] : null;
+      if (!last) return [{ x: n.cx, y: n.botY }];
+      return exitPoints(last);
+    }
+    if (n.type === 'residual') {
+      return [{ x: n._addCx, y: n._addCy + CFG.circleR }];
+    }
+    return [{ x: n.cx, y: n.botY }];
+  }
+
+  // Inner entry/exit points (penetrate containers - original behavior)
+  function entryPointsInner(n) {
+    if (!n) return [];
+    if (n.type === 'empty') return [{ x: n.cx, y: n.topY }];
+    if (n.type === 'node')  return [{ x: n.cx, y: n.topY }];
+    if (n.type === 'parallel') return n.children.flatMap(entryPointsInner);
+    if (n.type === 'seq' || n.type === 'serial' || n.type === 'group' || n.type === 'residual') {
+      const first = n.children && n.children.length ? n.children[0] : null;
+      if (!first) return [{ x: n.cx, y: n.topY }];
+      return entryPointsInner(first);
+    }
+    return [{ x: n.cx, y: n.topY }];
+  }
+
+  function exitPointsInner(n) {
+    if (!n) return [];
+    if (n.type === 'empty') return [{ x: n.cx, y: n.botY }];
+    if (n.type === 'node')  return [{ x: n.cx, y: n.botY }];
+    if (n.type === 'parallel') return n.children.flatMap(exitPointsInner);
+    if (n.type === 'seq' || n.type === 'serial' || n.type === 'group') {
+      const last = n.children && n.children.length ? n.children[n.children.length - 1] : null;
+      if (!last) return [{ x: n.cx, y: n.botY }];
+      return exitPointsInner(last);
+    }
+    if (n.type === 'residual') {
+      return [{ x: n._addCx, y: n._addCy + CFG.circleR }];
+    }
+    return [{ x: n.cx, y: n.botY }];
+  }
+
+  // ───────────────────────────────────────────────────────────
+  //  6. SVG RENDERER
+  // ───────────────────────────────────────────────────────────
+
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  function markerDef(id, w, h, fill) {
+    return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${w}" refY="${h/2}" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L${w},${h/2} L0,${h}" fill="${fill}"/></marker>`;
+  }
+
+  // Pre-pass: compute _tap points for residual bypass arrows
+  // _tap marks where the bypass arrow should "tap off" from the incoming arrow
+  // (midpoint of the arrow entering the residual block)
+  function computeTapPoints(node) {
+    if (!node.children || !node.children.length) return;
+
+    // Special handling for groups: residuals inside should tap from internal arrow
+    if (node.type === 'group' && node.children.length) {
+      const firstChild = node.children[0];
+      const firstResidual = findFirstResidual(firstChild);
+      if (firstResidual) {
+        // Tap from the group's internal entry arrow (top border → first child)
+        const fromY = node.y;  // Top of group border
+        const toPoints = entryPointsInner(firstChild);
+        if (toPoints.length) {
+          const toY = toPoints[0].y;
+          firstResidual._tap = {
+            x: node.cx,
+            y: fromY + (toY - fromY) / 2
+          };
+        }
+      }
+    }
+
+    let prevReal = null;
+    for (const child of node.children) {
+      if (child.type === 'empty') continue;
+
+      if (prevReal !== null) {
+        // Find first residual in this child (handles residuals nested in groups)
+        const firstResidual = findFirstResidual(child);
+        if (firstResidual) {
+          // For groups, tap from internal arrow; for others, from external arrow
+          if (child.type === 'group') {
+            // Tap from group's internal entry arrow
+            const fromY = child.y;
+            const toPoints = entryPointsInner(child.children[0]);
+            if (toPoints.length) {
+              const toY = toPoints[0].y;
+              firstResidual._tap = {
+                x: child.cx,
+                y: fromY + (toY - fromY) / 2
+              };
+            }
+          } else {
+            // Original behavior: tap from external arrow
+            const from = exitPoints(prevReal);
+            const to = entryPoints(child);
+            if (from.length && to.length) {
+              firstResidual._tap = { x: from[0].x, y: (from[0].y + to[0].y) / 2 };
+            }
+          }
+        }
+      }
+
+      prevReal = child;
+      computeTapPoints(child);
+    }
+  }
+
+  function render(tree) {
+    // Pre-compute tap points for residual bypass arrows
+    computeTapPoints(tree);
+
+    const pad = 55;
+    const rExtra = 60;
+    const W = tree.w + pad * 2 + rExtra;
+    const H = tree.h + pad * 2;
+    const o = [];
+
+    o.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="font-family:${CFG.font}">`);
+    o.push(`<defs>`);
+    o.push(markerDef('ah', 10, 9, CFG.arrowColor));
+    o.push(markerDef('ah-s', 9, 8, CFG.arrowColor));
+    o.push(`<filter id="sh" x="-8%" y="-8%" width="120%" height="130%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.07"/></filter>`);
+    o.push(`</defs>`);
+    o.push(`<g transform="translate(${pad},${pad})">`);
+    o.push(drawNode(tree));
+    o.push(`</g></svg>`);
+    return o.join('');
+  }
+
+  // ── Arrow primitives ──
+
+  function arrowV(x1, y1, x2, y2, marker = 'ah') {
+    const sy = y1 + CFG.arrowGap;
+    const ey = y2 - CFG.arrowGap;
+
+    if (Math.abs(x1 - x2) < 1) {
+      return `<line x1="${x1}" y1="${sy}" x2="${x2}" y2="${ey}" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#${marker})"/>`;
+    }
+    // L-bend: vertical half, horizontal, vertical half
+    const my = sy + (ey - sy) / 2;
+    return `<path d="M${x1},${sy} L${x1},${my} L${x2},${my} L${x2},${ey}" fill="none" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#${marker})"/>`;
+  }
+
+  // Headless arrow (line without arrowhead) for group boundaries
+  function lineV(x1, y1, x2, y2) {
+    const sy = y1 + CFG.arrowGap;
+    const ey = y2 - CFG.arrowGap;
+
+    if (Math.abs(x1 - x2) < 1) {
+      return `<line x1="${x1}" y1="${sy}" x2="${x2}" y2="${ey}" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}"/>`;
+    }
+    const my = sy + (ey - sy) / 2;
+    return `<path d="M${x1},${sy} L${x1},${my} L${x2},${my} L${x2},${ey}" fill="none" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}"/>`;
+  }
+
+  function arrowSideH(fromX, fromY, toX, toY) {
+    return `<line x1="${fromX}" y1="${fromY}" x2="${toX}" y2="${toY}" stroke="${CFG.arrowColor}" stroke-width="1.3" marker-end="url(#ah-s)"/>`;
+  }
+
+  // ── Connection logic ──
+  //
+  // Empty spacer handling:
+  //   - Empty nodes are invisible placeholders for alignment in parallel layouts
+  //   - Arrows pass THROUGH empty nodes as single continuous lines
+  //   - getEffectiveEntry/Exit find the real node to connect to
+  //   - arrowVThrough/arrowVFromThrough draw arrows that pass through empty positions
+
+  // Get effective entry point, skipping leading empty nodes in serials
+  function getEffectiveEntry(node) {
+    if (node.type === 'serial' || node.type === 'seq') {
+      for (const child of node.children) {
+        if (child.type !== 'empty') {
+          return getEffectiveEntry(child);
+        }
+      }
+      return null;
+    }
+    const entries = entryPoints(node);
+    return entries.length > 0 ? entries[0] : null;
+  }
+
+  // Get effective exit point, skipping trailing empty nodes in serials
+  function getEffectiveExit(node) {
+    if (node.type === 'serial' || node.type === 'seq') {
+      for (let i = node.children.length - 1; i >= 0; i--) {
+        if (node.children[i].type !== 'empty') {
+          return getEffectiveExit(node.children[i]);
+        }
+      }
+      return null;
+    }
+    const exits = exitPoints(node);
+    return exits.length > 0 ? exits[0] : null;
+  }
+
+  // Check if serial ends with empty
+  function serialEndsWithEmpty(node) {
+    return (node.type === 'serial' || node.type === 'seq') &&
+           node.children.length > 0 &&
+           node.children[node.children.length - 1].type === 'empty';
+  }
+
+  // Check if serial starts with empty
+  function serialStartsWithEmpty(node) {
+    return (node.type === 'serial' || node.type === 'seq') &&
+           node.children.length > 0 &&
+           node.children[0].type === 'empty';
+  }
+
+  // Find first residual in a node (recursively through groups/serials)
+  function findFirstResidual(node) {
+    if (node.type === 'residual') return node;
+    if (node.type === 'group' || node.type === 'serial' || node.type === 'seq') {
+      if (node.children.length > 0) {
+        return findFirstResidual(node.children[0]);
+      }
+    }
+    return null;
+  }
+
+  // Draw arrow through an intermediate point (for empty nodes at entry)
+  // Bend Y is calculated based on throughY to align with sibling branches
+  function arrowVThrough(x1, y1, throughX, throughY, x2, y2, marker = 'ah') {
+    const sy = y1 + CFG.arrowGap;
+    const ey = y2 - CFG.arrowGap;
+    // Bend at midpoint between source and the "through" point (like normal arrows to that level)
+    const bendY = sy + (throughY - sy) / 2;
+
+    if (Math.abs(x1 - throughX) < 1 && Math.abs(throughX - x2) < 1) {
+      return `<line x1="${x1}" y1="${sy}" x2="${x2}" y2="${ey}" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#${marker})"/>`;
+    }
+    return `<path d="M${x1},${sy} L${x1},${bendY} L${throughX},${bendY} L${throughX},${ey}" fill="none" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#${marker})"/>`;
+  }
+
+  // Draw arrow from real source through empty's position to target (for empty at exit)
+  function arrowVFromThrough(x1, y1, throughX, throughY, x2, y2, marker = 'ah') {
+    const sy = y1 + CFG.arrowGap;
+    const ey = y2 - CFG.arrowGap;
+    // Bend at midpoint between the "through" point and destination
+    const bendY = throughY + (ey - throughY) / 2;
+
+    if (Math.abs(x1 - throughX) < 1 && Math.abs(throughX - x2) < 1) {
+      return `<line x1="${x1}" y1="${sy}" x2="${x2}" y2="${ey}" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#${marker})"/>`;
+    }
+    // Go down from source, at throughY level go to throughX, then bend to target
+    return `<path d="M${x1},${sy} L${x1},${throughY} L${throughX},${throughY} L${throughX},${bendY} L${x2},${bendY} L${x2},${ey}" fill="none" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#${marker})"/>`;
+  }
+
+  function connect(prev, cur) {
+    const from = exitPoints(prev);
+    const to   = entryPoints(cur);
+    if (!from.length || !to.length) return '';
+
+    // Special handling for SOURCE being parallel (some branches may end with empty)
+    if (prev.type === 'parallel') {
+      let arrows = '';
+      // Use lineV if target is a group
+      const drawFn = cur.type === 'group' ? lineV : arrowV;
+      prev.children.forEach(child => {
+        const childExit = exitPoints(child);
+        if (!childExit.length) return;
+
+        // Check if this branch is a serial ending with empty
+        if (serialEndsWithEmpty(child)) {
+          const realSource = getEffectiveExit(child);
+          if (realSource) {
+            // Draw from real last node through empty's position to target
+            to.forEach(t => {
+              arrows += arrowVFromThrough(realSource.x, realSource.y, childExit[0].x, childExit[0].y, t.x, t.y);
+            });
+          }
+        } else {
+          to.forEach(t => {
+            arrows += drawFn(childExit[0].x, childExit[0].y, t.x, t.y);
+          });
+        }
+      });
+      return arrows;
+    }
+
+    // Special handling for TARGET being parallel (some branches may start with empty)
+    if (cur.type === 'parallel' && from.length === 1) {
+      let arrows = '';
+      cur.children.forEach(child => {
+        const childEntry = entryPoints(child);
+        if (!childEntry.length) return;
+
+        // Use lineV if this parallel child is a group
+        const drawFn = child.type === 'group' ? lineV : arrowV;
+
+        // Check if this branch is a serial starting with empty
+        if (serialStartsWithEmpty(child)) {
+          const realTarget = getEffectiveEntry(child);
+          if (realTarget) {
+            // Draw through empty's position to real target (aligned bend)
+            arrows += arrowVThrough(from[0].x, from[0].y, childEntry[0].x, childEntry[0].y, realTarget.x, realTarget.y);
+          }
+        } else {
+          arrows += drawFn(from[0].x, from[0].y, childEntry[0].x, childEntry[0].y);
+        }
+      });
+      return arrows;
+    }
+
+    // Special handling for serial starting with empty (non-parallel case)
+    if (serialStartsWithEmpty(cur) && from.length === 1) {
+      const realTarget = getEffectiveEntry(cur);
+      if (realTarget && to.length) {
+        return arrowVThrough(from[0].x, from[0].y, to[0].x, to[0].y, realTarget.x, realTarget.y);
+      }
+    }
+
+    // Choose arrow function based on whether target is a group
+    // Arrow TO group: no arrowhead (line stops at border)
+    // Arrow FROM group: has arrowhead (normal arrow starts at border)
+    const drawArrow = cur.type === 'group' ? lineV : arrowV;
+
+    // 1→N  fan-out
+    if (from.length === 1 && to.length >= 1) {
+      return to.map(t => drawArrow(from[0].x, from[0].y, t.x, t.y)).join('');
+    }
+    // N→1  fan-in
+    if (from.length >= 1 && to.length === 1) {
+      return from.map(f => drawArrow(f.x, f.y, to[0].x, to[0].y)).join('');
+    }
+    // N→M  pairwise
+    const n = Math.min(from.length, to.length);
+    let s = '';
+    for (let i = 0; i < n; i++) s += drawArrow(from[i].x, from[i].y, to[i].x, to[i].y);
+    return s;
+  }
+
+  function seqArrows(children) {
+    let s = '';
+    let prevReal = null;
+
+    for (let i = 0; i < children.length; i++) {
+      const cur = children[i];
+
+      // Skip empty spacer nodes - arrows pass through them via connect()
+      if (cur.type === 'empty') {
+        continue;
+      }
+
+      if (prevReal !== null) {
+        s += connect(prevReal, cur);
+      }
+
+      prevReal = cur;
+    }
+    return s;
+  }
+
+  // ── Draw dispatch ──
+
+  function drawNode(n) {
+    switch (n.type) {
+      case 'seq':      return drawSeq(n);
+      case 'serial':   return drawSeq(n);
+      case 'group':    return drawGroup(n);
+      case 'residual': return drawResidual(n);
+      case 'parallel': return drawParallel(n);
+      case 'node':     return drawGenericNode(n);
+      case 'empty':    return '';  // invisible — draws nothing
+      default:         return '';
+    }
+  }
+
+  function drawSeq(n) {
+    let s = '';
+    n.children.forEach(c => s += drawNode(c));
+    s += seqArrows(n.children);
+    return s;
+  }
+
+  function drawGroup(n) {
+    let s = '';
+    const gc = getGroupColor(n.color);
+
+    // Border
+    s += `<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="12" fill="${gc.bg}" stroke="${gc.border}" stroke-width="1.5" stroke-dasharray="7 4"/>`;
+
+    // Label on the RIGHT top edge (fix #2)
+    if (n.label) {
+      s += `<text x="${n.x + n.w - 14}" y="${n.y + 21}" text-anchor="end" font-size="${CFG.groupLabelFont}" font-weight="600" fill="${gc.border}" letter-spacing=".2">${esc(n.label)}</text>`;
+    }
+
+    // Repeat badge (right of box)
+    if (n.repeat) {
+      s += `<text x="${n.x + n.w + 14}" y="${n.y + n.h / 2 + 2}" dominant-baseline="middle" font-size="24" font-weight="700" fill="${CFG.repeatColor}">×${esc(n.repeat)}</text>`;
+    }
+
+    // Draw entry arrow from group top border to first child (with arrowhead)
+    // Handles fan-out if first child is parallel
+    const first = n.children[0];
+    if (first) {
+      const fromX = n.cx;
+      const fromY = n.y;  // Top of group border
+      const toPoints = entryPointsInner(first);
+      toPoints.forEach(toPt => {
+        s += arrowV(fromX, fromY, toPt.x, toPt.y);
+      });
+    }
+
+    // Draw exit arrow from last child to group bottom border (no arrowhead)
+    // Handles fan-in if last child is parallel
+    const last = n.children[n.children.length - 1];
+    if (last) {
+      const fromPoints = exitPointsInner(last);
+      const toX = n.cx;
+      const toY = n.y + n.h;  // Bottom of group border
+      fromPoints.forEach(fromPt => {
+        s += lineV(fromPt.x, fromPt.y, toX, toY);
+      });
+    }
+
+    n.children.forEach(c => s += drawNode(c));
+    s += seqArrows(n.children);
+    return s;
+  }
+
+  function drawResidual(n) {
+    let s = '';
+
+    n.children.forEach(c => s += drawNode(c));
+    s += seqArrows(n.children);
+
+    // ── Merge node: plain "+" inside circle (fix #1) ──
+    const ax = n._addCx, ay = n._addCy;
+    const r = CFG.circleR;
+    s += `<circle cx="${ax}" cy="${ay}" r="${r}" fill="${CFG.addFill}" stroke="${CFG.addStroke}" stroke-width="1.5"/>`;
+    // Draw a proper "+" with two crossing lines
+    const arm = r * 0.5;
+    s += `<line x1="${ax}" y1="${ay - arm}" x2="${ax}" y2="${ay + arm}" stroke="${CFG.addStroke}" stroke-width="2" stroke-linecap="round"/>`;
+    s += `<line x1="${ax - arm}" y1="${ay}" x2="${ax + arm}" y2="${ay}" stroke="${CFG.addStroke}" stroke-width="2" stroke-linecap="round"/>`;
+    // "Addition" label to the right
+    s += `<text x="${ax + r + 8}" y="${ay + 1}" dominant-baseline="middle" font-size="${CFG.subFont}" fill="#666">Addition</text>`;
+
+    // Arrow: last child → merge (top entry)
+    const last = n.children[n.children.length - 1];
+    if (last) {
+      const from = exitPoints(last)[0];
+      if (from) s += arrowV(from.x, from.y, ax, ay - r);
+    }
+
+    // ── Bypass arrow (fix #3: T-junction from midpoint) ──
+    const first = n.children[0];
+    if (first) {
+      const leftX = n.x + 6;
+      const endX = ax - r;
+      const endY = ay;
+
+      let sx, sy;
+      if (n._tap) {
+        // Tap from midpoint of the incoming arrow
+        sx = n._tap.x;
+        sy = n._tap.y;
+      } else {
+        // Fallback: use entry point (shouldn't normally happen)
+        const ep = entryPoints(first)[0];
+        sx = ep.x;
+        sy = ep.y;
+      }
+
+      s += `<path d="M${sx},${sy} L${leftX},${sy} L${leftX},${endY} L${endX},${endY}" fill="none" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#ah-s)"/>`;
+    }
+
+    return s;
+  }
+
+  function drawParallel(n) {
+    let s = '';
+    n.children.forEach(c => s += drawNode(c));
+    return s;
+  }
+
+  function drawGenericNode(n) {
+    const col = getColor(n.color);
+
+    if (n.shape === 'circle') {
+      let s = drawCircleNode(n._cx, n._cy, CFG.circleR, n.label, n.sublabel, col, true);
+      if (n.side) s += drawSideInput(n);
+      return s;
+    }
+
+    // Pill: small auto-fit rounded rectangle
+    if (n.shape === 'pill') {
+      let s = '';
+      const pw = n._pillW;
+      const ph = n._pillH;
+      const px = n.cx - pw / 2;
+      const pr = ph / 2;  // fully rounded ends
+      s += `<rect x="${px}" y="${n.y}" width="${pw}" height="${ph}" rx="${pr}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1.5" filter="url(#sh)"/>`;
+      s += `<text x="${n.cx}" y="${n.y + ph/2 + 1}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.pillFontSize}" font-weight="600" fill="${col.text}">${esc(n.label)}</text>`;
+      if (n.side) s += drawSideInput(n);
+      return s;
+    }
+
+    // Rectangle
+    let s = '';
+    const h = nH(n);
+    const w = CFG.nodeW;
+    const rx = n.cx - w / 2;
+
+    s += `<rect x="${rx}" y="${n.y}" width="${w}" height="${h}" rx="${CFG.cornerR}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1.5" filter="url(#sh)"/>`;
+
+    if (n.sublabel) {
+      s += `<text x="${n.cx}" y="${n.y + h/2 - 7}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.fontSize}" font-weight="600" fill="${col.text}">${esc(n.label)}</text>`;
+      s += `<text x="${n.cx}" y="${n.y + h/2 + 10}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.subFont}" fill="${col.text}" opacity=".6">${esc(n.sublabel)}</text>`;
+    } else {
+      s += `<text x="${n.cx}" y="${n.y + h/2 + 1}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.fontSize}" font-weight="600" fill="${col.text}">${esc(n.label)}</text>`;
+    }
+
+    if (n.side) s += drawSideInput(n);
+    return s;
+  }
+
+  function drawCircleNode(cx, cy, r, label, sublabel, col, shadow) {
+    let s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1.5"${shadow ? ' filter="url(#sh)"' : ''}/>`;
+    s += `<text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="600" fill="${col.text}">${esc(label)}</text>`;
+    if (sublabel) {
+      const lines = sublabel.split('\\n');
+      lines.forEach((ln, i) => {
+        s += `<text x="${cx}" y="${cy + r + 13 + i * 13}" text-anchor="middle" font-size="${CFG.subFont}" fill="#666">${esc(ln)}</text>`;
+      });
+    }
+    return s;
+  }
+
+  function drawSideInput(n) {
+    const side = n.side;
+    const col = getColor(side.color);
+    let s = '';
+
+    if (side.shape === 'circle') {
+      s += drawCircleNode(side._cx, side._cy, CFG.circleR, side.label, side.sublabel, col, false);
+    } else {
+      const sw = CFG.nodeW * 0.5, sh = CFG.nodeH * 0.8;
+      s += `<rect x="${side._cx - sw/2}" y="${side._cy - sh/2}" width="${sw}" height="${sh}" rx="6" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1.5"/>`;
+      s += `<text x="${side._cx}" y="${side._cy + 1}" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="600" fill="${col.text}">${esc(side.label)}</text>`;
+    }
+
+    const sideEdgeX = side.shape === 'circle' ? side._cx - CFG.circleR : side._cx - CFG.nodeW * 0.25;
+    let mainEdgeX, mainEdgeY;
+    if (n.shape === 'circle') {
+      mainEdgeX = n._cx + CFG.circleR;
+      mainEdgeY = n._cy;
+    } else {
+      mainEdgeX = n.cx + CFG.nodeW / 2;
+      mainEdgeY = n.y + nH(n) / 2;
+    }
+    s += arrowSideH(sideEdgeX, side._cy, mainEdgeX, mainEdgeY);
+    return s;
+  }
+
+  // ───────────────────────────────────────────────────────────
+  //  7. EXAMPLES
+  // ───────────────────────────────────────────────────────────
+
+  const EX = {};
+
+  EX.custom = `
+
+`
+
+  EX.llama = `
+Embedding orange
+
+group "Transformer Block" repeat=N
+  residual
+    RMSNorm green
+    parallel
+      serial
+        RoPE white pill
+        Linear "Query" pink
+      end
+      serial
+        RoPE white pill
+        Linear "Key" pink
+      end
+      serial
+        empty white pill
+        Linear "Value" pink
+      end
+    end
+    Grouped Query Attention blue
+  end
+
+  residual
+    RMSNorm green
+    group "SwiGLU FFN" color=red
+      parallel
+        serial
+          Linear "Gate Proj" pink
+          SiLU white pill
+        end
+        serial
+          Linear "Up Proj" pink
+          empty white pill
+        end
+      end
+      x white circle
+      Linear "Down Proj" pink
+    end
+  end
+end
+
+RMSNorm green
+Linear "Unembedding" pink`;
+
+  // ───────────────────────────────────────────────────────────
+  //  8. APP
+  // ───────────────────────────────────────────────────────────
+
+  const editorEl = document.getElementById('editor');
+  const canvasEl = document.getElementById('canvas');
+  const statusEl = document.getElementById('status');
+  let debounce;
+
+  function setStatus(ok, msg) {
+    statusEl.className = 'st ' + (ok ? 'ok' : 'err');
+    statusEl.textContent = ok ? '✓ OK' : '✗ ' + (msg || 'Error');
+  }
+
+  function update() {
+    try {
+      const { ast, errors } = parse(editorEl.value);
+      if (errors.length) { setStatus(false, errors[0]); return; }
+      const tree = doLayout(ast);
+      canvasEl.innerHTML = render(tree);
+      setStatus(true);
+    } catch(e) { setStatus(false, e.message); }
+  }
+
+  editorEl.addEventListener('input', () => {
+    clearTimeout(debounce); debounce = setTimeout(update, 80);
+  });
+  editorEl.addEventListener('keydown', e => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const s = editorEl.selectionStart, en = editorEl.selectionEnd;
+      editorEl.value = editorEl.value.substring(0, s) + '  ' + editorEl.value.substring(en);
+      editorEl.selectionStart = editorEl.selectionEnd = s + 2;
+      clearTimeout(debounce); debounce = setTimeout(update, 80);
+    }
+  });
+
+  window.doExport = function(fmt) {
+    const el = canvasEl.querySelector('svg');
+    if (!el) return;
+    if (fmt === 'svg') {
+      dl(new Blob([el.outerHTML], { type:'image/svg+xml' }), 'diagram.svg');
+      return;
+    }
+    const data = new XMLSerializer().serializeToString(el);
+    const cvs = document.createElement('canvas');
+    const sc = 3;
+    cvs.width  = el.viewBox.baseVal.width  * sc;
+    cvs.height = el.viewBox.baseVal.height * sc;
+    const ctx = cvs.getContext('2d');
+    ctx.fillStyle = '#EEF0F5';
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    const img = new Image();
+    img.onload = () => { ctx.drawImage(img, 0, 0, cvs.width, cvs.height); cvs.toBlob(b => dl(b, 'diagram.png')); };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
+  };
+
+  function dl(blob, name) {
+    const u = URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'), { href: u, download: name }).click();
+    URL.revokeObjectURL(u);
+  }
+
+  window.load = function(name) {
+    document.querySelectorAll('.bar button').forEach(b => b.classList.remove('on'));
+    const btn = document.getElementById('btn-' + name);
+    if (btn) btn.classList.add('on');
+    editorEl.value = EX[name] || '';
+    update();
+  };
+
+  // Resize grip
+  const gripEl = document.getElementById('grip');
+  const edPanelEl = document.getElementById('edPanel');
+  let resizing = false;
+  gripEl.addEventListener('mousedown', () => {
+    resizing = true; gripEl.classList.add('on');
+    document.body.style.cssText = 'cursor:col-resize;user-select:none';
+  });
+  document.addEventListener('mousemove', e => {
+    if (resizing) edPanelEl.style.width = Math.max(280, Math.min(800, e.clientX)) + 'px';
+  });
+  document.addEventListener('mouseup', () => {
+    resizing = false; gripEl.classList.remove('on'); document.body.style.cssText = '';
+  });
+
+  load('llama');
+})();
+</script>
+</body>
+</html>
