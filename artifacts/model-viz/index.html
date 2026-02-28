@@ -3,7 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ModelViz — ML Architecture Diagrams</title>
+<title>ModelViz - Free Text to Model Architecture Diagrams</title>
+<meta name="description" content="Create beautiful ML architecture diagrams from simple text. Visualize transformers, LLaMA, ResNet, ViT and custom neural network architectures with an intuitive DSL. Export to SVG or PNG.">
+<meta name="keywords" content="machine learning, neural network, architecture diagram, transformer, LLaMA, visualization, deep learning, model architecture, DSL">
+<meta name="author" content="Omkaar Kamath">
+<link rel="canonical" href="https://omkaark.com/model-viz/">
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://omkaark.com/model-viz/">
+<meta property="og:title" content="ModelViz - Free Text to Model Architecture Diagrams">
+<meta property="og:description" content="Create beautiful ML architecture diagrams from simple text. Visualize transformers, LLaMA, ResNet, and custom neural networks with an intuitive DSL.">
+<meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/model-viz/hero.jpg">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:url" content="https://omkaark.com/model-viz/">
+<meta name="twitter:title" content="ModelViz - Free Text to Model Architecture Diagrams">
+<meta name="twitter:description" content="Create beautiful ML architecture diagrams from simple text. Visualize transformers, LLaMA, ResNet, and custom neural networks with an intuitive DSL.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/model-viz/hero.jpg">
+
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -22,8 +41,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);hei
 .bar button{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:4px 11px;border-radius:5px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.03);color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s}
 .bar button:hover{background:rgba(74,144,217,.18);border-color:rgba(74,144,217,.3);color:#fff}
 .bar button.on{background:rgba(74,144,217,.22);border-color:var(--accent);color:#fff}
-#editor{flex:1;background:0;color:var(--ed-text);font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.75;padding:16px 20px;border:0;outline:0;resize:none;tab-size:2;overflow-y:auto}
+#editor{flex:1;background:rgba(255,255,255,.04);color:var(--ed-text);font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.75;padding:16px 20px;border:1px solid rgba(255,255,255,.1);border-radius:6px;margin:8px 12px;outline:0;resize:none;tab-size:2;overflow-y:auto;transition:background .15s,border-color .15s}
+#editor:focus{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
 #editor::selection{background:rgba(74,144,217,.3)}
+#editor:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
 .ed-foot{padding:8px 20px;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between}
 .hint{font-size:10px;color:rgba(255,255,255,.22);font-family:'IBM Plex Mono',monospace}
 .st{font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:4px}
@@ -157,7 +178,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     font:           "'DM Sans', sans-serif",
     mono:           "'IBM Plex Mono', monospace",
     fontSize:       13.5,
-    subFont:        10.5,
+    subFont:        13.5,
     groupLabelFont: 11.5,
 
     pillPadX:       12,      // horizontal padding for pill shape
@@ -654,7 +675,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     computeTapPoints(tree);
 
     const pad = 55;
-    const rExtra = 60;
+    const rExtra = 160;  // Extra width for right-side labels
     const W = tree.w + pad * 2 + rExtra;
     const H = tree.h + pad * 2;
     const o = [];
@@ -1201,7 +1222,7 @@ Linear "Unembedding" pink`;
     cvs.width  = el.viewBox.baseVal.width  * sc;
     cvs.height = el.viewBox.baseVal.height * sc;
     const ctx = cvs.getContext('2d');
-    ctx.fillStyle = '#EEF0F5';
+    ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, cvs.width, cvs.height);
     const img = new Image();
     img.onload = () => { ctx.drawImage(img, 0, 0, cvs.width, cvs.height); cvs.toBlob(b => dl(b, 'diagram.png')); };
