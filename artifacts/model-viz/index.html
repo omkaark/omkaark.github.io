@@ -79,10 +79,10 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
       <div class="logo">Model<span>Viz</span></div>
     </div>
     <div class="bar">
-      <button onclick="load('custom')" class="on" id="btn-custom">Custom</button>
-      <button onclick="load('llama')" class="on" id="btn-llama">LLaMA</button>
+      <button onclick="load('custom')" class="on" id="btn-custom" aria-label="Load custom diagram template">Custom</button>
+      <button onclick="load('llama')" class="on" id="btn-llama" aria-label="Load LLaMA architecture example">LLaMA</button>
     </div>
-    <div class="help-row"><span class="help-toggle" onclick="document.getElementById('hp').classList.toggle('open')">DSL reference ▾</span></div>
+    <div class="help-row"><span class="help-toggle" role="button" tabindex="0" aria-label="Toggle DSL reference guide" onclick="document.getElementById('hp').classList.toggle('open')">DSL reference ▾</span></div>
     <div class="help" id="hp">
       <h4>Nodes</h4>
       <code>Label color</code> — rectangle (full width)<br>
@@ -96,10 +96,11 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
       <code>parallel</code> / <code>end</code> — side by side (split/merge)<br>
       <code>group "Name" repeat=N color=C</code> / <code>end</code><br>
       <code>residual</code> / <code>end</code> — skip connection + addition<br>
+      <code>residual multiply</code> / <code>end</code> — skip connection × gating<br>
       <h4>Side input</h4>
       <code>Main ... &lt;~ Side ...</code>
     </div>
-    <textarea id="editor" spellcheck="false"></textarea>
+    <textarea id="editor" spellcheck="false" aria-label="DSL code editor for diagram"></textarea>
     <div class="ed-foot">
       <span class="hint">Live preview</span>
       <span class="st ok" id="status">✓ OK</span>
@@ -110,8 +111,8 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     <div class="cv-head">
       <div class="cv-title">Preview</div>
       <div class="cv-btns">
-        <button onclick="doExport('svg')">⬇ SVG</button>
-        <button onclick="doExport('png')">⬇ PNG</button>
+        <button onclick="doExport('svg')" aria-label="Export diagram as SVG">⬇ SVG</button>
+        <button onclick="doExport('png')" aria-label="Export diagram as PNG">⬇ PNG</button>
       </div>
     </div>
     <div id="canvas"></div>
@@ -123,7 +124,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
   "use strict";
 
   // ═══════════════════════════════════════════════════════════
-  //  ArchViz v4 — Aesthetic & Layout Overhaul
+  //  ModelViz — ML Architecture Diagram Generator
   // ═══════════════════════════════════════════════════════════
   //
   //  Fixes applied:
@@ -185,6 +186,16 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     pillPadY:       6,       // vertical padding for pill shape
     pillFontSize:   12,      // font size inside pill
     pillCharWidth:  7,       // approximate character width for sizing
+
+    sublabelLineHeight: 14,  // line height for sublabels
+    markerWidth:    10,      // arrowhead marker width
+    markerHeight:   9,       // arrowhead marker height
+    markerSmallWidth: 9,     // small arrowhead width
+    markerSmallHeight: 8,    // small arrowhead height
+    repeatFontSize: 24,      // font size for repeat badge
+    circleFontSize: 16,      // font size inside circle nodes
+    sideInputWidthRatio: 0.5,  // side input width as ratio of nodeW
+    sideInputHeightRatio: 0.8, // side input height as ratio of nodeH
   };
 
   // ───────────────────────────────────────────────────────────
@@ -225,7 +236,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
   function parse(src) {
     const lines = src.split('\n');
-    const root = { type:'seq', children:[] };
+    const root = { type:'serial', children:[] };
     const stack = [root];
     const top = () => stack[stack.length - 1];
     const errors = [];
@@ -248,9 +259,8 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
           top().children.push(n); stack.push(n); continue;
         }
         if (/^residual\b/.test(t)) {
-          const n = { type:'residual', children:[], from:'node' };
-          const mm = t.match(/from=(mid|node)/);
-          if (mm) n.from = mm[1];
+          const n = { type:'residual', children:[], op:'add' };
+          if (/\bmultiply\b/.test(t)) n.op = 'multiply';
           top().children.push(n); stack.push(n); continue;
         }
         if (/^group\b/.test(t)) {
@@ -314,7 +324,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
   //  by using the max height and centering vertically, ensuring
   //  the top baseline aligns perfectly.
 
-  const nH = n => n.sublabel ? CFG.nodeHSub : CFG.nodeH;
+  const getNodeHeight = node => node.sublabel ? CFG.nodeHSub : CFG.nodeH;
 
   function sideWidth(n) {
     if (!n.side) return 0;
@@ -349,14 +359,13 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
         break;
       }
 
-      case 'seq':
       case 'serial':
       case 'group':
       case 'residual': {
         n.children.forEach(measure);
         let h = 0, w = 0;
         n.children.forEach((c, i) => {
-          c._oy = h;
+          c._offsetY = h;
           const isLast = i === n.children.length - 1;
           h += c.h + (isLast ? 0 : CFG.vGap);
           w = Math.max(w, c.w);
@@ -364,7 +373,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
         if (n.type === 'residual') {
           h += CFG.residualAddGap + CFG.circleR * 2 + CFG.residualPadBot;
-          n._cw = w;
+          n._contentWidth = w;
           n.w = w + CFG.residualPad * 2;  // Pad BOTH sides for symmetric layout
           n.h = h;
         } else if (n.type === 'group') {
@@ -374,7 +383,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
             first._skipTopPad = true;
             // Adjust _oy of siblings after the parallel (they were positioned based on full parallel.h)
             for (let i = 1; i < n.children.length; i++) {
-              n.children[i]._oy -= CFG.parallelPadTop;
+              n.children[i]._offsetY -= CFG.parallelPadTop;
             }
             h -= CFG.parallelPadTop;
           }
@@ -385,7 +394,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
           }
           // Check if last child is residual - its residualPadBot serves as bottom padding
           const skipGroupPadBot = last && (last.type === 'residual' || last.type === 'parallel');
-          n._iw = w; n._ih = h;
+          n._innerWidth = w; n._innerHeight = h;
           n.w = w + CFG.groupPadX * 2;
           n.h = h + CFG.groupPadTop + (skipGroupPadBot ? 0 : CFG.groupPadBot);
         } else {
@@ -398,7 +407,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
         n.children.forEach(measure);
         let w = 0, maxH = 0;
         n.children.forEach((c, i) => {
-          c._ox = w;
+          c._offsetX = w;
           w += c.w + (i < n.children.length - 1 ? CFG.hGap : 0);
           maxH = Math.max(maxH, c.h);
         });
@@ -415,7 +424,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
         if (n.shape === 'circle') {
           const d = CFG.circleR * 2;
           n.w = Math.max(d + extra, CFG.nodeW);
-          n.h = d + (n.sublabel ? n.sublabel.split('\\n').length * 14 + 2 : 0);
+          n.h = d + (n.sublabel ? n.sublabel.split('\\n').length * CFG.sublabelLineHeight + 2 : 0);
         } else if (n.shape === 'pill') {
           // Pill: auto-fit width based on text length, same height as circle
           const textW = n.label.length * CFG.pillCharWidth;
@@ -425,7 +434,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
           n.h = n._pillH;
         } else {
           n.w = CFG.nodeW + extra;
-          n.h = nH(n);
+          n.h = getNodeHeight(n);
         }
         break;
       }
@@ -444,10 +453,9 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
         break;
       }
 
-      case 'seq':
       case 'serial': {
         const mx = x + n.w / 2;
-        n.children.forEach(c => position(c, mx - c.w / 2, y + c._oy));
+        n.children.forEach(c => position(c, mx - c.w / 2, y + c._offsetY));
         n.cx  = mx;
         n.topY = n.children.length ? n.children[0].topY : y;
         n.botY = n.children.length ? n.children[n.children.length - 1].botY : y + n.h;
@@ -455,8 +463,8 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
       }
 
       case 'group': {
-        const mx = x + CFG.groupPadX + n._iw / 2;
-        n.children.forEach(c => position(c, mx - c.w / 2, y + CFG.groupPadTop + c._oy));
+        const mx = x + CFG.groupPadX + n._innerWidth / 2;
+        n.children.forEach(c => position(c, mx - c.w / 2, y + CFG.groupPadTop + c._offsetY));
         n.cx  = x + n.w / 2;
         n.topY = y;              // Group's top border
         n.botY = y + n.h;        // Group's bottom border
@@ -465,8 +473,8 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
       case 'residual': {
         const contentX = x + CFG.residualPad;
-        const mx = contentX + n._cw / 2;
-        n.children.forEach(c => position(c, mx - c.w / 2, y + c._oy));
+        const mx = contentX + n._contentWidth / 2;
+        n.children.forEach(c => position(c, mx - c.w / 2, y + c._offsetY));
 
         const last = n.children[n.children.length - 1];
         const baseY = last ? last.botY : y;
@@ -485,7 +493,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
         // Skip top padding if this parallel is first child of a group (to avoid stacking)
         const topPad = n._skipTopPad ? 0 : CFG.parallelPadTop;
         n.children.forEach(c => {
-          position(c, x + c._ox, y + topPad);
+          position(c, x + c._offsetX, y + topPad);
         });
         n.cx  = x + n.w / 2;
         n.topY = y;
@@ -510,12 +518,12 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
         } else {
           n.cx  = x + mainW / 2;
           n.topY = y;
-          n.botY = y + nH(n);
+          n.botY = y + getNodeHeight(n);
         }
 
         if (n.side) {
           const s = n.side;
-          const mainCy = n.shape === 'circle' ? n._cy : y + nH(n) / 2;
+          const mainCy = n.shape === 'circle' ? n._cy : y + getNodeHeight(n) / 2;
           const sNodeW = s.shape === 'circle' ? CFG.circleR * 2 : CFG.nodeW * 0.5;
           const sx = x + mainW + CFG.sideGap / 2 + sNodeW / 2;
           s._cx = sx; s._cy = mainCy;
@@ -542,7 +550,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     if (n.type === 'group') {
       return [{ x: n.cx, y: n.y }];
     }
-    if (n.type === 'seq' || n.type === 'serial' || n.type === 'residual') {
+    if (n.type === 'serial' || n.type === 'residual') {
       const first = n.children && n.children.length ? n.children[0] : null;
       if (!first) return [{ x: n.cx, y: n.topY }];
       return entryPoints(first);
@@ -559,7 +567,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     if (n.type === 'group') {
       return [{ x: n.cx, y: n.y + n.h }];
     }
-    if (n.type === 'seq' || n.type === 'serial') {
+    if (n.type === 'serial') {
       const last = n.children && n.children.length ? n.children[n.children.length - 1] : null;
       if (!last) return [{ x: n.cx, y: n.botY }];
       return exitPoints(last);
@@ -576,7 +584,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     if (n.type === 'empty') return [{ x: n.cx, y: n.topY }];
     if (n.type === 'node')  return [{ x: n.cx, y: n.topY }];
     if (n.type === 'parallel') return n.children.flatMap(entryPointsInner);
-    if (n.type === 'seq' || n.type === 'serial' || n.type === 'group' || n.type === 'residual') {
+    if (n.type === 'serial' || n.type === 'group' || n.type === 'residual') {
       const first = n.children && n.children.length ? n.children[0] : null;
       if (!first) return [{ x: n.cx, y: n.topY }];
       return entryPointsInner(first);
@@ -589,7 +597,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     if (n.type === 'empty') return [{ x: n.cx, y: n.botY }];
     if (n.type === 'node')  return [{ x: n.cx, y: n.botY }];
     if (n.type === 'parallel') return n.children.flatMap(exitPointsInner);
-    if (n.type === 'seq' || n.type === 'serial' || n.type === 'group') {
+    if (n.type === 'serial' || n.type === 'group') {
       const last = n.children && n.children.length ? n.children[n.children.length - 1] : null;
       if (!last) return [{ x: n.cx, y: n.botY }];
       return exitPointsInner(last);
@@ -604,7 +612,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
   //  6. SVG RENDERER
   // ───────────────────────────────────────────────────────────
 
-  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const escapeHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
   function markerDef(id, w, h, fill) {
     return `<marker id="${id}" markerWidth="${w}" markerHeight="${h}" refX="${w}" refY="${h/2}" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L${w},${h/2} L0,${h}" fill="${fill}"/></marker>`;
@@ -682,8 +690,8 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
     o.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="font-family:${CFG.font}">`);
     o.push(`<defs>`);
-    o.push(markerDef('ah', 10, 9, CFG.arrowColor));
-    o.push(markerDef('ah-s', 9, 8, CFG.arrowColor));
+    o.push(markerDef('ah', CFG.markerWidth, CFG.markerHeight, CFG.arrowColor));
+    o.push(markerDef('ah-s', CFG.markerSmallWidth, CFG.markerSmallHeight, CFG.arrowColor));
     o.push(`<filter id="sh" x="-8%" y="-8%" width="120%" height="130%"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.07"/></filter>`);
     o.push(`</defs>`);
     o.push(`<g transform="translate(${pad},${pad})">`);
@@ -732,7 +740,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
   // Get effective entry point, skipping leading empty nodes in serials
   function getEffectiveEntry(node) {
-    if (node.type === 'serial' || node.type === 'seq') {
+    if (node.type === 'serial') {
       for (const child of node.children) {
         if (child.type !== 'empty') {
           return getEffectiveEntry(child);
@@ -746,7 +754,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
   // Get effective exit point, skipping trailing empty nodes in serials
   function getEffectiveExit(node) {
-    if (node.type === 'serial' || node.type === 'seq') {
+    if (node.type === 'serial') {
       for (let i = node.children.length - 1; i >= 0; i--) {
         if (node.children[i].type !== 'empty') {
           return getEffectiveExit(node.children[i]);
@@ -760,14 +768,14 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
   // Check if serial ends with empty
   function serialEndsWithEmpty(node) {
-    return (node.type === 'serial' || node.type === 'seq') &&
+    return (node.type === 'serial') &&
            node.children.length > 0 &&
            node.children[node.children.length - 1].type === 'empty';
   }
 
   // Check if serial starts with empty
   function serialStartsWithEmpty(node) {
-    return (node.type === 'serial' || node.type === 'seq') &&
+    return (node.type === 'serial') &&
            node.children.length > 0 &&
            node.children[0].type === 'empty';
   }
@@ -775,7 +783,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
   // Find first residual in a node (recursively through groups/serials)
   function findFirstResidual(node) {
     if (node.type === 'residual') return node;
-    if (node.type === 'group' || node.type === 'serial' || node.type === 'seq') {
+    if (node.type === 'group' || node.type === 'serial') {
       if (node.children.length > 0) {
         return findFirstResidual(node.children[0]);
       }
@@ -811,6 +819,30 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     return `<path d="M${x1},${sy} L${x1},${throughY} L${throughX},${throughY} L${throughX},${bendY} L${x2},${bendY} L${x2},${ey}" fill="none" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#${marker})"/>`;
   }
 
+  // Draw pass-through for all-empty branch: source → entry → exit (no arrowhead, continues to next)
+  function arrowVPassThrough(x1, y1, entryX, entryY, exitX, exitY) {
+    const sy = y1 + CFG.arrowGap;
+    const ey = exitY;  // No gap - continues to next connection
+    const bendY = sy + (entryY - sy) / 2;
+
+    if (Math.abs(x1 - entryX) < 1) {
+      return `<line x1="${x1}" y1="${sy}" x2="${entryX}" y2="${ey}" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}"/>`;
+    }
+    return `<path d="M${x1},${sy} L${x1},${bendY} L${entryX},${bendY} L${entryX},${ey}" fill="none" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}"/>`;
+  }
+
+  // Continue pass-through from all-empty branch exit to final target with arrowhead
+  function arrowVPassThroughTo(exitX, exitY, targetX, targetY) {
+    const sy = exitY;  // Start from exit of empty branch
+    const ey = targetY - CFG.arrowGap;
+    const bendY = sy + (ey - sy) / 2;
+
+    if (Math.abs(exitX - targetX) < 1) {
+      return `<line x1="${exitX}" y1="${sy}" x2="${targetX}" y2="${ey}" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#ah)"/>`;
+    }
+    return `<path d="M${exitX},${sy} L${exitX},${bendY} L${targetX},${bendY} L${targetX},${ey}" fill="none" stroke="${CFG.arrowColor}" stroke-width="${CFG.arrowStroke}" marker-end="url(#ah)"/>`;
+  }
+
   function connect(prev, cur) {
     const from = exitPoints(prev);
     const to   = entryPoints(cur);
@@ -833,6 +865,14 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
             to.forEach(t => {
               arrows += arrowVFromThrough(realSource.x, realSource.y, childExit[0].x, childExit[0].y, t.x, t.y);
             });
+          } else {
+            // All-empty branch: draw pass-through from exit to target
+            const childEntry = entryPoints(child);
+            if (childEntry.length > 0) {
+              to.forEach(t => {
+                arrows += arrowVPassThroughTo(childExit[0].x, childExit[0].y, t.x, t.y);
+              });
+            }
           }
         } else {
           to.forEach(t => {
@@ -859,6 +899,12 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
           if (realTarget) {
             // Draw through empty's position to real target (aligned bend)
             arrows += arrowVThrough(from[0].x, from[0].y, childEntry[0].x, childEntry[0].y, realTarget.x, realTarget.y);
+          } else {
+            // All-empty branch: draw pass-through line (no arrowhead, continues later)
+            const childExit = exitPoints(child);
+            if (childExit.length > 0) {
+              arrows += arrowVPassThrough(from[0].x, from[0].y, childEntry[0].x, childEntry[0].y, childExit[0].x, childExit[0].y);
+            }
           }
         } else {
           arrows += drawFn(from[0].x, from[0].y, childEntry[0].x, childEntry[0].y);
@@ -920,7 +966,6 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
   function drawNode(n) {
     switch (n.type) {
-      case 'seq':      return drawSeq(n);
       case 'serial':   return drawSeq(n);
       case 'group':    return drawGroup(n);
       case 'residual': return drawResidual(n);
@@ -947,12 +992,12 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
     // Label on the RIGHT top edge (fix #2)
     if (n.label) {
-      s += `<text x="${n.x + n.w - 14}" y="${n.y + 21}" text-anchor="end" font-size="${CFG.groupLabelFont}" font-weight="600" fill="${gc.border}" letter-spacing=".2">${esc(n.label)}</text>`;
+      s += `<text x="${n.x + n.w - 14}" y="${n.y + 21}" text-anchor="end" font-size="${CFG.groupLabelFont}" font-weight="600" fill="${gc.border}" letter-spacing=".2">${escapeHtml(n.label)}</text>`;
     }
 
     // Repeat badge (right of box)
     if (n.repeat) {
-      s += `<text x="${n.x + n.w + 14}" y="${n.y + n.h / 2 + 2}" dominant-baseline="middle" font-size="24" font-weight="700" fill="${CFG.repeatColor}">×${esc(n.repeat)}</text>`;
+      s += `<text x="${n.x + n.w + 14}" y="${n.y + n.h / 2 + 2}" dominant-baseline="middle" font-size="${CFG.repeatFontSize}" font-weight="700" fill="${CFG.repeatColor}">×${escapeHtml(n.repeat)}</text>`;
     }
 
     // Draw entry arrow from group top border to first child (with arrowhead)
@@ -990,16 +1035,22 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     n.children.forEach(c => s += drawNode(c));
     s += seqArrows(n.children);
 
-    // ── Merge node: plain "+" inside circle (fix #1) ──
+    // ── Merge node: "+" or "×" inside circle depending on op ──
     const ax = n._addCx, ay = n._addCy;
     const r = CFG.circleR;
     s += `<circle cx="${ax}" cy="${ay}" r="${r}" fill="${CFG.addFill}" stroke="${CFG.addStroke}" stroke-width="1.5"/>`;
-    // Draw a proper "+" with two crossing lines
     const arm = r * 0.5;
-    s += `<line x1="${ax}" y1="${ay - arm}" x2="${ax}" y2="${ay + arm}" stroke="${CFG.addStroke}" stroke-width="2" stroke-linecap="round"/>`;
-    s += `<line x1="${ax - arm}" y1="${ay}" x2="${ax + arm}" y2="${ay}" stroke="${CFG.addStroke}" stroke-width="2" stroke-linecap="round"/>`;
-    // "Addition" label to the right
-    s += `<text x="${ax + r + 8}" y="${ay + 1}" dominant-baseline="middle" font-size="${CFG.subFont}" fill="#666">Residual</text>`;
+    if (n.op === 'multiply') {
+      // Draw "×" with two diagonal lines
+      s += `<line x1="${ax - arm}" y1="${ay - arm}" x2="${ax + arm}" y2="${ay + arm}" stroke="${CFG.addStroke}" stroke-width="2" stroke-linecap="round"/>`;
+      s += `<line x1="${ax + arm}" y1="${ay - arm}" x2="${ax - arm}" y2="${ay + arm}" stroke="${CFG.addStroke}" stroke-width="2" stroke-linecap="round"/>`;
+      s += `<text x="${ax + r + 8}" y="${ay + 1}" dominant-baseline="middle" font-size="${CFG.subFont}" fill="#666">Gate</text>`;
+    } else {
+      // Draw "+" with two crossing lines
+      s += `<line x1="${ax}" y1="${ay - arm}" x2="${ax}" y2="${ay + arm}" stroke="${CFG.addStroke}" stroke-width="2" stroke-linecap="round"/>`;
+      s += `<line x1="${ax - arm}" y1="${ay}" x2="${ax + arm}" y2="${ay}" stroke="${CFG.addStroke}" stroke-width="2" stroke-linecap="round"/>`;
+      s += `<text x="${ax + r + 8}" y="${ay + 1}" dominant-baseline="middle" font-size="${CFG.subFont}" fill="#666">Residual</text>`;
+    }
 
     // Arrow: last child → merge (top entry)
     const last = n.children[n.children.length - 1];
@@ -1056,24 +1107,24 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
       const px = n.cx - pw / 2;
       const pr = ph / 2;  // fully rounded ends
       s += `<rect x="${px}" y="${n.y}" width="${pw}" height="${ph}" rx="${pr}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1.5" filter="url(#sh)"/>`;
-      s += `<text x="${n.cx}" y="${n.y + ph/2 + 1}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.pillFontSize}" font-weight="600" fill="${col.text}">${esc(n.label)}</text>`;
+      s += `<text x="${n.cx}" y="${n.y + ph/2 + 1}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.pillFontSize}" font-weight="600" fill="${col.text}">${escapeHtml(n.label)}</text>`;
       if (n.side) s += drawSideInput(n);
       return s;
     }
 
     // Rectangle
     let s = '';
-    const h = nH(n);
+    const h = getNodeHeight(n);
     const w = CFG.nodeW;
     const rx = n.cx - w / 2;
 
     s += `<rect x="${rx}" y="${n.y}" width="${w}" height="${h}" rx="${CFG.cornerR}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1.5" filter="url(#sh)"/>`;
 
     if (n.sublabel) {
-      s += `<text x="${n.cx}" y="${n.y + h/2 - 7}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.fontSize}" font-weight="600" fill="${col.text}">${esc(n.label)}</text>`;
-      s += `<text x="${n.cx}" y="${n.y + h/2 + 10}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.subFont}" fill="${col.text}" opacity=".6">${esc(n.sublabel)}</text>`;
+      s += `<text x="${n.cx}" y="${n.y + h/2 - 7}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.fontSize}" font-weight="600" fill="${col.text}">${escapeHtml(n.label)}</text>`;
+      s += `<text x="${n.cx}" y="${n.y + h/2 + 10}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.subFont}" fill="${col.text}" opacity=".6">${escapeHtml(n.sublabel)}</text>`;
     } else {
-      s += `<text x="${n.cx}" y="${n.y + h/2 + 1}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.fontSize}" font-weight="600" fill="${col.text}">${esc(n.label)}</text>`;
+      s += `<text x="${n.cx}" y="${n.y + h/2 + 1}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.fontSize}" font-weight="600" fill="${col.text}">${escapeHtml(n.label)}</text>`;
     }
 
     if (n.side) s += drawSideInput(n);
@@ -1082,12 +1133,12 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
   function drawCircleNode(cx, cy, r, label, sublabel, col, shadow) {
     let s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1.5"${shadow ? ' filter="url(#sh)"' : ''}/>`;
-    s += `<text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="middle" font-size="16" font-weight="600" fill="${col.text}">${esc(label)}</text>`;
+    s += `<text x="${cx}" y="${cy + 1}" text-anchor="middle" dominant-baseline="middle" font-size="${CFG.circleFontSize}" font-weight="600" fill="${col.text}">${escapeHtml(label)}</text>`;
     if (sublabel) {
       // Sublabel to the right of the circle
       const lines = sublabel.split('\\n');
       lines.forEach((ln, i) => {
-        s += `<text x="${cx + r + 8}" y="${cy + 1 + (i - (lines.length-1)/2) * 13}" text-anchor="start" dominant-baseline="middle" font-size="${CFG.subFont}" fill="#666">${esc(ln)}</text>`;
+        s += `<text x="${cx + r + 8}" y="${cy + 1 + (i - (lines.length-1)/2) * 13}" text-anchor="start" dominant-baseline="middle" font-size="${CFG.subFont}" fill="#666">${escapeHtml(ln)}</text>`;
       });
     }
     return s;
@@ -1101,9 +1152,9 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
     if (side.shape === 'circle') {
       s += drawCircleNode(side._cx, side._cy, CFG.circleR, side.label, side.sublabel, col, false);
     } else {
-      const sw = CFG.nodeW * 0.5, sh = CFG.nodeH * 0.8;
+      const sw = CFG.nodeW * CFG.sideInputWidthRatio, sh = CFG.nodeH * CFG.sideInputHeightRatio;
       s += `<rect x="${side._cx - sw/2}" y="${side._cy - sh/2}" width="${sw}" height="${sh}" rx="6" fill="${col.fill}" stroke="${col.stroke}" stroke-width="1.5"/>`;
-      s += `<text x="${side._cx}" y="${side._cy + 1}" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="600" fill="${col.text}">${esc(side.label)}</text>`;
+      s += `<text x="${side._cx}" y="${side._cy + 1}" text-anchor="middle" dominant-baseline="middle" font-size="11" font-weight="600" fill="${col.text}">${escapeHtml(side.label)}</text>`;
     }
 
     const sideEdgeX = side.shape === 'circle' ? side._cx - CFG.circleR : side._cx - CFG.nodeW * 0.25;
@@ -1113,7 +1164,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
       mainEdgeY = n._cy;
     } else {
       mainEdgeX = n.cx + CFG.nodeW / 2;
-      mainEdgeY = n.y + nH(n) / 2;
+      mainEdgeY = n.y + getNodeHeight(n) / 2;
     }
     s += arrowSideH(sideEdgeX, side._cy, mainEdgeX, mainEdgeY);
     return s;
@@ -1127,8 +1178,7 @@ textarea::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius
 
   EX.custom = ``
 
-  EX.llama = `
-Embedding orange
+  EX.llama = `Embedding orange
 
 group "Transformer Block" repeat=N
   residual
@@ -1213,26 +1263,26 @@ Linear "Unembedding" pink`;
     const el = canvasEl.querySelector('svg');
     if (!el) return;
     if (fmt === 'svg') {
-      dl(new Blob([el.outerHTML], { type:'image/svg+xml' }), 'diagram.svg');
+      downloadFile(new Blob([el.outerHTML], { type:'image/svg+xml' }), 'diagram.svg');
       return;
     }
     const data = new XMLSerializer().serializeToString(el);
-    const cvs = document.createElement('canvas');
-    const sc = 3;
-    cvs.width  = el.viewBox.baseVal.width  * sc;
-    cvs.height = el.viewBox.baseVal.height * sc;
-    const ctx = cvs.getContext('2d');
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, cvs.width, cvs.height);
+    const canvas = document.createElement('canvas');
+    const scale = 3;
+    canvas.width  = el.viewBox.baseVal.width  * scale;
+    canvas.height = el.viewBox.baseVal.height * scale;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#FFFFFF';
+    context.fillRect(0, 0, canvas.width, canvas.height);
     const img = new Image();
-    img.onload = () => { ctx.drawImage(img, 0, 0, cvs.width, cvs.height); cvs.toBlob(b => dl(b, 'diagram.png')); };
+    img.onload = () => { context.drawImage(img, 0, 0, canvas.width, canvas.height); canvas.toBlob(blob => downloadFile(blob, 'diagram.png')); };
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
   };
 
-  function dl(blob, name) {
-    const u = URL.createObjectURL(blob);
-    Object.assign(document.createElement('a'), { href: u, download: name }).click();
-    URL.revokeObjectURL(u);
+  function downloadFile(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'), { href: url, download: filename }).click();
+    URL.revokeObjectURL(url);
   }
 
   window.load = function(name) {

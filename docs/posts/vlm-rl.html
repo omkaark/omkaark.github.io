@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz@9..40&family=Caveat:wght@500&family=Merriweather:opsz,wght@18..144,400&display=swap" rel="stylesheet">
+    
+            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
+            <title>Toddler VLM learns how to navigate - Omkaar Kamath</title>
+            <meta name="description" content="description">
+            <meta property="og:title" content="Toddler VLM learns how to navigate - Omkaar Kamath">
+            <meta property="og:description" content="description">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/vlm-rl.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/15-ai-safety/adoption.png?raw=true">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="Toddler VLM learns how to navigate - Omkaar Kamath">
+            <meta name="twitter:description" content="description">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/15-ai-safety/adoption.png?raw=true">
+        
+
+    <style>
+    /* ---------- TYPOGRAPHY SYSTEM (rem/em only) ---------- */
+:root {
+  /* One knob to rule them all. Change this in media query to scale everything. */
+  --base: 1rem;           /* 1rem = browser default (usually 16px) */
+  --scale: 1.25;          /* modular scale ratio: Major Third */
+
+  /* Precomputed steps off the base using the scale (no px anywhere) */
+  --step-0:  calc(var(--base) * 1.15);
+  --step-1:  calc(var(--base) * 1.4);
+  --step-2:  calc(var(--step-1) * 1.4);
+  --step-3:  calc(var(--step-2) * 1.4);
+  --step-4:  calc(var(--step-3) * 1.7);
+}
+
+/* On mobile, set ONE number (the base) and everything scales automatically */
+@media (max-width: 768px) {
+  :root {
+    --base: 0.95rem;   /* tighten all text ~5%. change to 0.90rem, 1.05rem, etc */
+  }
+}
+
+/* ---------- GLOBAL ---------- */
+html { font-size: 100%; } /* keep user/browser zoom respectful */
+body {
+  font-family: "DM Sans", sans-serif;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: #000;
+  background: #fff;
+  width: 80vw;
+  max-width: 50rem; /* 800px -> 50rem for consistency */
+  margin: 0 auto;
+  padding: 2.5rem 0; /* 40px -> 2.5rem */
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  font-family: "Caveat", monospace;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  border-bottom: 0.125rem solid #000; /* 2px -> rem */
+  padding-bottom: 1.25rem;           /* 20px -> 1.25rem */
+}
+
+.name {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: 0.125rem; /* 2px -> rem */
+  text-transform: uppercase;
+}
+
+/* ---------- INDEX / POSTS LIST ---------- */
+.posts {
+  margin-bottom: 5rem;
+  font-size: var(--step-1);
+}
+
+.post {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem; /* 12px 20px */
+  margin: 1.25rem 0;       /* 20px */
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.post::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -100%;
+  width: 100%;
+  background: #FFFDD0;
+  transition: left 0.15s ease;
+  z-index: -1;
+}
+.post:hover::before { left: 0; }
+
+.post-hover-gif {
+  position: absolute;
+  height: 4rem;
+  width: 40rem;
+  background-image: url("https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/run.gif?raw=true");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: right;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 120ms ease-in;
+}
+
+.post-link:hover .post-hover-gif { 
+  opacity: 1; 
+}
+
+.post-title { flex: 1; margin-right: 1.25rem; }
+.post-link { color: #000; text-decoration: none; font-weight: 400; position: relative; }
+
+.post-date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+/* ---------- FOOTER ---------- */
+.footer {
+  border-top: 0.125rem solid #000;
+  padding-top: 1.25rem;
+  display: flex;
+  gap: 1.875rem; /* 30px */
+}
+
+.social-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem; /* 1px */
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+.social-link:hover { text-decoration: underline; }
+
+/* ---------- POST PAGE ---------- */
+.post-content {
+  margin-bottom: 5rem;
+  max-width: 50rem;
+  font-size: var(--step-0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 0.0625rem solid #000; /* 1px */
+}
+
+.back-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem;
+  font-weight: 700;
+  font-size: var(--step--1);
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Headings on the scale */
+.post-content h1 {
+  font-family: "Merriweather", serif;
+  margin: 1.875rem 0 1.25rem; /* 30 0 20 */
+  font-size: var(--step-3);
+  line-height: 1.2;
+}
+
+.post-content h2 {
+  font-family: "Merriweather", serif;
+  margin: 1.875rem 0 0.9375rem; /* 30 0 15 */
+  font-size: var(--step-2);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h3 {
+  font-family: "Merriweather", serif;
+  margin: 1.5625rem 0 0.625rem; /* 25 0 10 */
+  font-size: var(--step-1);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h4 {
+  font-family: "Merriweather", serif;
+  margin: 1.425rem 0 0.425rem; /* 25 0 10 */
+  font-size: var(--step-0);
+  line-height: 1.25;
+  width: 100%;
+}
+
+.post-content ul {
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.post-content p {
+  margin-bottom: 1.25rem; /* 20 */
+  line-height: 1.6;
+  font-size: var(--step-0);
+  font-family: "DM Sans", sans-serif;
+  width: 100%;
+}
+
+.post-content a { color: #000; text-decoration: underline; }
+.post-content a:hover { background: #f5f5dc; }
+
+/* Images unaffected by font scale, but spacings use rem for consistency */
+.post-content img {
+  margin: 1.25rem 0;
+  max-width: 100%;
+  max-height: 50rem;
+  border-radius: 0.5rem; /* 8px */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px #ccc dashed;
+  padding: 10px;
+}
+
+/* ---------- INLINE CODE ---------- */
+.post-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--step-0);
+  background: rgba(127,127,127,.12);
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  padding: .15em .4em;   /* em ties to current font-size */
+  border-radius: .35em;
+  word-break: break-word;
+}
+
+/* ---------- CODE BLOCKS ---------- */
+.post-content pre {
+  margin: 1.25rem 0;
+  padding: 0.875rem 1rem; /* 14px 16px */
+  border-radius: 0.75rem; /* 12px */
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  background: #f7f7f9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  tab-size: 2;
+  font-size: var(--step-0); /* control block base size */
+  line-height: 1.55;
+  width: 100%;
+}
+.post-content pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;   /* inherit from pre; keep scale intact */
+  line-height: 1.55;
+  display: block;
+  white-space: pre;
+}
+
+/* ---------- TABLES ---------- */
+.post-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 2rem 0;
+  font-size: var(--step-0);
+  font-family: "DM Sans", sans-serif;
+}
+
+.post-content th,
+.post-content td {
+  border: 0.0625rem solid #000; /* thin black grid */
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.post-content th {
+  background: #f5f5f5;
+  font-weight: 700;
+  letter-spacing: 0.03rem;
+  text-transform: uppercase;
+}
+
+.post-content tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.post-content tr:hover td {
+  background: #FFFDD0; /* same yellow hover as posts */
+  transition: background 120ms ease-in-out;
+}
+
+.post-content table code {
+  font-size: 0.95em;
+}
+
+/* ---------- RESPONSIVE LAYOUT ONLY (typography scales via --base) ---------- */
+@media (max-width: 768px) {
+  body { width: 95vw; padding: 1.25rem 0; }
+
+  .header { flex-direction: column; justify-items: center; }
+
+  .post {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.5rem 0.9375rem;
+    margin: 1.25rem 0.625rem;
+    background: #FFFDD0;
+  }
+  .post::before { display: none; }
+
+  .post-title { margin-right: 0; margin-bottom: 0.25rem; }
+
+  .footer { flex-wrap: wrap; gap: 0.9375rem; }
+
+  .post-meta { flex-direction: column; align-items: flex-start; gap: 0.625rem; }
+
+  .post-content { margin: 0 0.625rem; }
+
+  .post-link:hover .post-hover-gif { 
+    opacity: 0;
+  }
+
+  .post-content table {
+    font-size: calc(var(--step-0) * 0.9);
+  }
+
+  .post-content th,
+  .post-content td {
+    padding: 0.6rem 0.75rem;
+  }
+}
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
+        <div style="display: flex; gap: 15px;">
+            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
+            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
+            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
+        </div>
+    </header>
+
+    
+    <main class="post-content">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  renderMathInElement(document.body, {
+    delimiters: [
+      { left: "$$", right: "$$", display: true },
+      { left: "\\(", right: "\\)", display: false }
+    ],
+    throwOnError: false
+  });
+});
+</script>
+<style>
+.katex-display {
+  max-width: 100%;
+  overflow-x: scroll;
+  overflow-y: hidden;
+}
+.formula-explanation {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 8px;
+  margin-bottom: 25px;
+}
+::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 7px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, .2);
+  border-radius: 20px;
+}
+</style>
+
+<h1>Toddler VLM learns how to navigate</h1>
+<p>Yes, you heard that right. In this worklog, I wanted to walkthrough how I approached getting a Qwen3-VL-2B-Instruct (non-thinking) model to navigate a custom RL environment.</p>
+<p>Recently, my mind has been occupied by the idea of long-horizon RL and multi-modal language models (MMLM) learning behaviours from games. Papers like <a href="https://arxiv.org/abs/2602.17594">AI Gamestore</a> describe this intuition well. Imagine an LLM being able to play chess (which requires long-horizon planning and plotting) to a similar capability to AlphaZero. AlphaZero is heavily constrained to that domain, but the MMLM can help you with homework, write hilarious haikus about random objects and also obliterate you in chess.</p>
+<p>This objective might seem moot at first but my hypothesis is that any model capable of doing such a broad range of activities truly must be intelligent. The point of AI Gamestore was AI can roughly learn to reason on market dynamics through games like Tycoon, Social Dynamics through Among Us, etc. I wanted to do a smaller scale experiment of this, so I made an eval.</p>
+<h2>Building the Eval</h2>
+<p>My eval idea was very simple. Given an NxN grid, the objective is to navigate towards and land on the golden square. There will be a few blocks as obstacles and a wall to stop you from falling through.</p>
+<p>This is what the game looks like:
+<TODO> attach a high res image here</p>
+<p>You can actually play the game here - <TODO> INSERT LINK OF GAME.</p>
+<p>I can't afford to try it on the frontier models, so I hooked up to openrouter and used it on different models like Bytedance's Seed 1.6 and Qwen-VL 235B (<TODO> confirm the actual large qwen model later).</p>
+<p>They were not really good at this task and it surprised me. I don't think labs currently have reason to waste tokens training on objectives like this. So, I decided to try doing it myself to see what kinds of end behaviours these models exhibit and whether these are linked to other models. <TODO> attribute Callum to this suggestion.</p>
+<p>The harness is also pretty simple, the models get a system prompt explaining the game and the current state's image. They get to output either <code>forward N</code> (to go N steps forward), <code>right</code> or <code>left</code> (to turn in the same spot). Then, the next stat's image is provided and so on till the game is won (standing on gold spot) or MAX_TURNS happens whichever is earlier.</p>
+<p>The model get's to see all it's previous actions along with previous images. I was considering to leave previous images out (which would let me increase my rollout batch size) but I think it might help the VLM to user previous frames in their exploration.</p>
+<p><TODO> attach an exxample image of the model's multi-turn chat would look like [SYSTEM -&gt; User: Text + Image -&gt; Assistant: Text -&gt; Etc.]</p>
+<p>I'll be honest, I oneshotted the environment with Claude 4.6 Opus. It's written in pure HTML/CSS/JS with ThreeJS as the 3D renderer. I ironed out some bugs after testing it for a while but that's it, I don't want to dive into that code.</p>
+<p>Note, on a deterministic test, the baseline got <strong>1/10</strong> tasks successfully. I will do a larger scale eval run on my base vs mid-train vs post-train checkpoints at the end.</p>
+<p><TODO> GIFs of task done correctly vs. incorrectly</p>
+<h2>Anthropomorphistic View</h2>
+<p>When I first read about that one Google engineer saying Bard (google's early consumer models) is human and uncanny, I thought he had lost his marbles. Though, I have started feeling the same about some of my interactions with AI recently.</p>
+<p>Now, watching a VLM play the game feels uncanny too. Different VLMs I ran on the evals had different behaviours. Chinese models were more conservative and moved one step forward at a time. American models took more confident larger steps and often found themselves running into a wall till max_turns. Both models had the tendency to oscillate between <code>left</code> and <code>right</code> as if panicking about what to do next.</p>
+<p><TODO> attach gifs of models simply going straight into the wall and other things.</p>
+<p>I found it really funny when models had the objective right in front of them but still chose to go around the block, waste a few steps and then coming back to the spot.</p>
+<p>Qwen3 VL 2b was having a pretty hard time but showed an understanding of the task on easier tasks. I like visual evals because I get to visualize exactly what the model has to work with.</p>
+<h2>Approach 1: Simple RL</h2>
+<p>Since the model is naturally non-thinking, I wanted to see how far I can push it to doing this task successfully and reliably. It's a hard problem to look at an image and without any reasoning giving an action to move towards the goal. My goal is to run RLVR on this task.</p>
+<p>One blocker in this task was the fact that the base qwen3-vl-2b-instruct (which I will henceforth refer to as &quot;the qwen model&quot;) had no situational awareness. It kept running into walls and not self-correcting / oscillating left and right. RLVR on a weak model like this will basically lead to very sparse rewards which is inefficient. The model should learn to move multiple steps at a time and in general, should know ideally how to get to the gold square. So... we mid-train.</p>
+<h3>Mid-training</h3>
+<p>Technically, mid-training is done on a base model to make it RL ready, add long-context capabilities, etc. But I use this word not knowing what else to call this.</p>
+<p>The whole point of mid-training is to nudge the model to understand our goals, which will help it perform better during RL. My constrained task makes mid-training easier as I can use basic algorithms to map the best route from current point to gold square while avoiding blocks.</p>
+<p>I generated synthetic data of efficient paths, collected images and ideal actions and LoRA finetuned the model on it. Note that I plan to use vLLM as my inference engine for RL rollouts later, it does not support a vision encoder LoRA so, I only finetuned the text decoder's linear layers, and yes, this does handicap my efforts a bit.</p>
+<h3>Reinforcement Learning</h3>
+<p>I'm guessing the audience of this worklog will be split between those who understand RL and those who haven't had the opportunity to. So, I'll give a simple intro to RLVR.</p>
+<h4>The point of RL</h4>
+<p>The objective in fine-tuning is to guide the model to predict the next token as required by a pre-defined dataset. RLVR is all about exploring the solution space and the model coming up with it's own solutions which then get scored using a verifiable reward. Rewards like whether the player is on a gold square or not are considered verifiable.</p>
+<p>In our example here, we simply run 16 rollouts on the game all of which have the same environment (blocks and gold square placement). We sample at a higher temperature to give the model a chance at choosing less likely tokens in hopes that it finds an unlikely behaviour by itself. For example, the model does not see the gold square in it's view, instead of going forward which the regular instruct model does, the model learns to look right or left in which case the gold square might come into sight and the task becomes easy from then on.</p>
+<p>Fine-tuning is more efficient but RL generalizes better.</p>
+<h4>GRPO as an RLVR algorithm</h4>
+<p><a href="https://arxiv.org/pdf/2501.12948">Deepseek Zero</a> came up with GRPO. This is what the algorithm looks like (use the scrollbar):</p>
+<p>
+$$
+J(\theta)
+=
+\frac{1}{G}
+\sum_{i=1}^{G}
+\frac{1}{|o_i|}
+\sum_{t=1}^{|o_i|}
+\left\{
+\min
+\left[
+\frac{\pi_{\theta}(o_{i,t} \mid q, o_{i,\lt t})}
+{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,\lt t})}
+\hat{A}_{i,t},
+\;
+\text{clip}\left(
+\frac{\pi_{\theta}(o_{i,t} \mid q, o_{i,\lt t})}
+{\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,\lt t})},
+1-\epsilon, 1+\epsilon
+\right)\hat{A}_{i,t}
+\right]
+\;-\;
+\beta\,
+D_{\mathrm{KL}}\!\left(
+\pi_{\theta}
+\,\|\, 
+\pi_{\mathrm{ref}}
+\right)
+\right\}
+$$
+</p>
+
+<p>where</p>
+<p>
+$$
+\hat{A}_i
+=
+\frac{r_i - \mathrm{mean}(r_{1:G})}
+{\mathrm{std}(r_{1:G})}
+$$
+</p>
+
+<p>Now, I'll proceed to briefly explain each part.</p>
+<div class="formula-explanation">
+  <span>
+    \(J(\theta)\)
+  </span>
+
+  <span>
+    : The objective function to be maximized
+  </span>
+</div>
+
+<div class="formula-explanation">
+  <span>
+    \({\frac{1}{G}\sum_{i=1}^{G}}\)
+  </span>
+
+  <span>
+    : Averages over G groups
+  </span>
+</div>
+
+<div class="formula-explanation">
+  <span>
+    \({\frac{1}{|o_i|}\sum_{t=1}^{|o_i|}}\)
+  </span>
+
+  <span>
+    : Averages over number of output tokens in the i'th rollout
+  </span>
+</div>
+
+<div class="formula-explanation">
+  <span>
+    \(
+    \frac{\pi_{\theta}(o_{i,t} \mid q, o_{i,\lt t})}
+    {\pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,\lt t})}
+    \)
+  </span>
+
+  <span>
+    : Ratio of probability of outputs tokens from current vs old policy
+  </span>
+</div>
+
+<div class="formula-explanation">
+  <span>
+    \(\hat{A}_{i,t}\)
+  </span>
+
+  <span>
+    : Advantage for i'th rollout and t'th token
+  </span>
+</div>
+
+<div class="formula-explanation">
+  <span>
+    \(D_{\mathrm{KL}}\!\left(\pi_{\theta}\,\|\,\pi_{\mathrm{ref}}\right)\)
+  </span>
+
+  <span>
+    : KL divergence between current and base model
+  </span>
+</div>
+
+<p>When I first saw the equation, I almost gave up. Having spent some time working with it though, it is much simpler than it looks. The clip/min part took some time for me to wrap my head around and visualize.</p>
+<p>Since objective function needs to be maximized and loss likes to be minimized (gradient descent), we simply negate the objective function to get our loss value. The KL divergence term is important to not have our model's distribution shift too much relative to our base model, this helps preserves the model's conversational, math and other abilties it was previously trained on.</p>
+<h4>Dr. GRPO</h4>
+<p><a href="https://arxiv.org/pdf/2503.20783">&quot;GRPO Done Right&quot; or Dr. GRPO</a> argues that GRPO has two biases:</p>
+<ul>
+<li>The 1/abs(o_i) normalizes each rollout by output length. When advantages are positive, shorter responses get larger gradient updates, so the model biases towards short answers when correct. However, when advantages are negative, the model ends up biasing towards longer incorrect responses.</li>
+<li>std(r_1:G) in advantage calculation ends up biasing the model towards very easy or hard problems. When the model gets all the rollouts with very high or very low reward (very easy or hard problems), the std dev is low, which boosts advantage and ends up awarding larger gradients.</li>
+</ul>
+<p>This paper simply scrapped them and saw an improvement. In my current setup, I actually only output 6-10 tokens per response. Output length normalization will not be helpful. Scrapping std(...) would make sense given I start off with a very low win rate. I scrapped both.</p>
+<h4>Set up</h4>
+<p>This is where it gets interesting. Instead of going with a pre-made framework, I decided to roll up my sleeves and write my own RLVR loop. While implementation requires treading carefully, the general steps are easy at a high level.</p>
+<p>Companies like OpenAI / Anthropic likely write the full stack themselves from inference to RL infra to model code. In the interest of my time, I used vLLM as my rollout engine and Huggingface as the finetuning backbone.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 608 500" style="width: 100%; height: auto; display: block;" font-family="'DM Sans', sans-serif">
+  <!--
+    Box: w=220, h=72
+    Row gap (space between boxes): 24
+    Col gap: 2 × 24 = 48
+    Left col x=60,  right edge=280
+    Right col x=328, right edge=548
+    Total width: 60+220+48+220+60 = 608
+    Row y-tops: 32, 128, 224, 320, 416
+    Row centers: 68, 164, 260, 356, 452
+    Left col center x:  170
+    Right col center x: 438
+  -->
+  <!-- ── ROW 1 ── -->
+  <!-- 01 -->
+  <rect x="60"  y="32"  width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="60"  y="32"  width="3"   height="72" rx="1.5" fill="#4A6FA5"/>
+  <text x="72"  y="50"  font-size="10" fill="#4A6FA5" font-weight="bold" letter-spacing="1.2">Step 01</text>
+  <line x1="70" y1="56" x2="274" y2="56" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="170" y="76"  text-anchor="middle" font-size="9.5" fill="#1C1C1C">Load latest adapter checkpoint</text>
+  <!-- 01 → 02 (right) -->
+  <line x1="280" y1="68" x2="323" y2="68" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="323,64 328,68 323,72" fill="#AAAAAA"/>
+  <!-- 02 -->
+  <rect x="328" y="32"  width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="328" y="32"  width="3"   height="72" rx="1.5" fill="#4A6FA5"/>
+  <text x="340" y="50"  font-size="10" fill="#4A6FA5" font-weight="bold" letter-spacing="1.2">Step 02</text>
+  <line x1="338" y1="56" x2="542" y2="56" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="438" y="76"  text-anchor="middle" font-size="9.5" fill="#1C1C1C">Run rollouts on vLLM (random seeds)</text>
+  <!-- 02 → 03 (down) -->
+  <line x1="438" y1="104" x2="438" y2="123" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="434,123 442,123 438,128" fill="#AAAAAA"/>
+  <!-- ── ROW 2 ── -->
+  <!-- 10 -->
+  <rect x="60"  y="128" width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="60"  y="128" width="3"   height="72" rx="1.5" fill="#C07840"/>
+  <text x="72"  y="146" font-size="10" fill="#C07840" font-weight="bold" letter-spacing="1.2">Step 10</text>
+  <line x1="70" y1="152" x2="274" y2="152" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="170" y="172" text-anchor="middle" font-size="9.5" fill="#1C1C1C">Wake vLLM up</text>
+  <!-- 03 -->
+  <rect x="328" y="128" width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="328" y="128" width="3"   height="72" rx="1.5" fill="#C07840"/>
+  <text x="340" y="146" font-size="10" fill="#C07840" font-weight="bold" letter-spacing="1.2">Step 03</text>
+  <line x1="338" y1="152" x2="542" y2="152" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="438" y="172" text-anchor="middle" font-size="9.5" fill="#1C1C1C">Put vLLM to sleep</text>
+  <!-- 03 → 04 (down) -->
+  <line x1="438" y1="200" x2="438" y2="219" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="434,219 442,219 438,224" fill="#AAAAAA"/>
+  <!-- ── ROW 3 ── -->
+  <!-- 09 -->
+  <rect x="60"  y="224" width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="60"  y="224" width="3"   height="72" rx="1.5" fill="#4A8C5C"/>
+  <text x="72"  y="242" font-size="10" fill="#4A8C5C" font-weight="bold" letter-spacing="1.2">Step 09</text>
+  <line x1="70" y1="248" x2="274" y2="248" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="170" y="268" text-anchor="middle" font-size="9.5" fill="#1C1C1C">Save adapter</text>
+  <!-- 04 -->
+  <rect x="328" y="224" width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="328" y="224" width="3"   height="72" rx="1.5" fill="#4A6FA5"/>
+  <text x="340" y="242" font-size="10" fill="#4A6FA5" font-weight="bold" letter-spacing="1.2">Step 04</text>
+  <line x1="338" y1="248" x2="542" y2="248" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="438" y="268" text-anchor="middle" font-size="9.5" fill="#1C1C1C">Prepare data: masks &amp; tokenized batches</text>
+  <!-- 04 → 05 (down) -->
+  <line x1="438" y1="296" x2="438" y2="315" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="434,315 442,315 438,320" fill="#AAAAAA"/>
+  <!-- ── ROW 4 ── -->
+  <!-- 08 -->
+  <rect x="60"  y="320" width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="60"  y="320" width="3"   height="72" rx="1.5" fill="#4A8C5C"/>
+  <text x="72"  y="338" font-size="10" fill="#4A8C5C" font-weight="bold" letter-spacing="1.2">Step 08</text>
+  <line x1="70" y1="344" x2="274" y2="344" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="170" y="364" text-anchor="middle" font-size="9.5" fill="#1C1C1C">Train policy for 4 iterations</text>
+  <!-- 05 -->
+  <rect x="328" y="320" width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="328" y="320" width="3"   height="72" rx="1.5" fill="#4A6FA5"/>
+  <text x="340" y="338" font-size="10" fill="#4A6FA5" font-weight="bold" letter-spacing="1.2">Step 05</text>
+  <line x1="338" y1="344" x2="542" y2="344" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="438" y="364" text-anchor="middle" font-size="9.5" fill="#1C1C1C">Load base model &amp; get ref. logprobs</text>
+  <!-- 05 → 06 (down) -->
+  <line x1="438" y1="392" x2="438" y2="411" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="434,411 442,411 438,416" fill="#AAAAAA"/>
+  <!-- ── ROW 5 ── -->
+  <!-- 07 -->
+  <rect x="60"  y="416" width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="60"  y="416" width="3"   height="72" rx="1.5" fill="#4A6FA5"/>
+  <text x="72"  y="434" font-size="10" fill="#4A6FA5" font-weight="bold" letter-spacing="1.2">Step 07</text>
+  <line x1="70" y1="440" x2="274" y2="440" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="170" y="460" text-anchor="middle" font-size="9.5" fill="#1C1C1C">Frozen logprobs of current model</text>
+  <!-- 06 -->
+  <rect x="328" y="416" width="220" height="72" rx="6" fill="white" stroke="#C8C8C8" stroke-width="1"/>
+  <rect x="328" y="416" width="3"   height="72" rx="1.5" fill="#4A6FA5"/>
+  <text x="340" y="434" font-size="10" fill="#4A6FA5" font-weight="bold" letter-spacing="1.2">Step 06</text>
+  <line x1="338" y1="440" x2="542" y2="440" stroke="#E8E8E8" stroke-width="0.8"/>
+  <text x="438" y="460" text-anchor="middle" font-size="9.5" fill="#1C1C1C">Calculate advantages</text>
+  <!-- 06 → 07 (left) -->
+  <line x1="328" y1="452" x2="285" y2="452" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="285,448 280,452 285,456" fill="#AAAAAA"/>
+  <!-- 07 → 08 (up) -->
+  <line x1="170" y1="416" x2="170" y2="397" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="166,397 174,397 170,392" fill="#AAAAAA"/>
+  <!-- 08 → 09 (up) -->
+  <line x1="170" y1="320" x2="170" y2="301" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="166,301 174,301 170,296" fill="#AAAAAA"/>
+  <!-- 09 → 10 (up) -->
+  <line x1="170" y1="224" x2="170" y2="205" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="166,205 174,205 170,200" fill="#AAAAAA"/>
+  <!-- 10 → 01 (up) -->
+  <line x1="170" y1="128" x2="170" y2="109" stroke="#AAAAAA" stroke-width="1.3"/>
+  <polygon points="166,109 174,109 170,104" fill="#AAAAAA"/>
+</svg>
+
+<p>The diagram should be pretty self-explanatory. There are caveats like using vLLM sleep <code>mode = 1</code> and load/unload lora quirks amongst other things which you can find in the code <TODO> link github.</p>
+<h4>Results</h4>
+<p>Before I give out the results, I'd like to remind you that completing the game in 10 tries is an ambitious endeavour. Maybe I will run the eval and give the model more turns to play but for now I will keep it 10. This means the model not only has to learn to explore the map, but also jump the right number of steps.</p>
+<p>Seedance Flash 1.6 which is a thinking model scored 3/20 on a 8x8 grid with three blocks and seeds 0 to 19. Qwen/Qwen3-2B-Instruct scored 3/20 under same conditions. My RL'd qwenny trained on 100 steps scored 4/20! This is a marginal improvement but I am elated. This could totally be noise but repeating the experiment led to the same results (sampling with default params).</p>
+<p><img src="/Users/omkaarwork/Desktop/projects/personal-website/public/16-vlm-rl/simple-rl-wandb.png" alt="WandB dashboard" /></p>
+<p>This dashboard shows a stagnant reward being assigned on different RL training runs. There's multiple of them because runs kept erroring out because I did not catch edge cases in the environment (a good lesson to learn). I had to run with n_group=1 and batch_size=16. This is not ideal as the point of GRPO is to have multiple groups and larger batches.</p>
+<p>To be honest, I had a feeling this idea was doomed anyway. Vision encoder is not finetuned and text decoder ouptuts too few tokens to meaningfully get RL'd.</p>
+<h2>Approach 2: Strawberry-ism</h2>
+<p>RL'ing on the answer itself is too simple of an idea. I need the model to yap and then get to an answer. I awakened my inner noam to make this happen.</p>
+<h3>Thinking Mode™</h3>
+<h2>Analysis and Evals</h2>
+
+    </main>
+    
+</body>
+</html>

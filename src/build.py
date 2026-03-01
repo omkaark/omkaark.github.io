@@ -149,7 +149,7 @@ def build_index_page(posts):
                 <div class="post-title">
                     {post['name']}
                 </div>
-                <div class="post-date">{post['date']}</div>
+                <div class="post-date" style="font-family: monospace; font-weight: 200;">{post['date']}</div>
             </div>
         </a>
         ''')
