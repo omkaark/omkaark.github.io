@@ -79,4 +79,10 @@
     "description": "My thoughts on AI Safety.",
     "slug": "on-ai-safety",
     "date": "2026-02-22"
+}, {
+    "name": "Toddler VLM learns how to navigate",
+    "image": "16-vlm-rl/game-example.png",
+    "description": "My attempt at RL'ing a small VLM to get better on a custom eval that tests for visuo-spatial reasoning and navigational capabilities.",
+    "slug": "vlm-rl",
+    "date": "2026-03-05"
 }]
