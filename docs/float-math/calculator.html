@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Floating Point Calculator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: white;
+            color: black;
+            font-size: 13px;
+            border: 1px solid #eee;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+
+        .input-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            font-size: 16px;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+            text-align: center;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #666;
+        }
+
+        .format-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .format-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .format-label {
+            font-weight: 500;
+            min-width: 90px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .bits-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .bit-group {
+            display: flex;
+            gap: 1px;
+        }
+
+        .bit-box {
+            width: 22px;
+            height: 22px;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-weight: 600;
+            font-size: 11px;
+            background: white;
+        }
+
+        .bit-box.sign {
+            background: #ffb3ba;
+            border-color: #ff9aa2;
+        }
+
+        .bit-box.exponent {
+            background: #baffc9;
+            border-color: #8bc34a;
+        }
+
+        .bit-box.mantissa {
+            background: #bae1ff;
+            border-color: #64b5f6;
+        }
+
+        .value-display {
+            min-width: 80px;
+            text-align: right;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            color: #444;
+            font-weight: 500;
+        }
+
+        .error {
+            color: #d32f2f;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .separator {
+            margin: 0 4px;
+            color: #999;
+            font-size: 10px;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                display: none;
+            }
+
+            .format-row {
+                flex-direction: column;
+                gap: 6px;
+                align-items: flex-start;
+            }
+            
+            .bits-container {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            
+            .bit-box {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+            }
+            
+            .value-display {
+                align-self: flex-end;
+                margin-top: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-section">
+            <input type="text" id="numberInput" placeholder="3.14159" value="3.14159">
+        </div>
+
+        <div class="formats-container">
+            <div class="format-row">
+                <div class="format-label"><strong>float32</strong></div>
+                <div class="bits-container">
+                    <div class="bit-group" id="float32-sign"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="float32-exponent"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="float32-mantissa"></div>
+                </div>
+                <div class="value-display" id="float32-value">3.14159</div>
+            </div>
+
+            <div class="format-row">
+                <div class="format-label"><strong>bfloat16</strong></div>
+                <div class="bits-container">
+                    <div class="bit-group" id="bf16-sign"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="bf16-exponent"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="bf16-mantissa"></div>
+                </div>
+                <div class="value-display" id="bf16-value">3.140625</div>
+            </div>
+
+            <div class="format-row">
+                <div class="format-label"><strong>float16</strong></div>
+                <div class="bits-container">
+                    <div class="bit-group" id="f16-sign"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="f16-exponent"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="f16-mantissa"></div>
+                </div>
+                <div class="value-display" id="f16-value">3.140625</div>
+            </div>
+        </div>
+
+        <div class="error" id="errorMsg"></div>
+    </div>
+
+    <script>
+        const formats = {
+            float32: { signBits: 1, expBits: 8, mantBits: 23, expBias: 127 },
+            bf16: { signBits: 1, expBits: 8, mantBits: 7, expBias: 127 },
+            f16: { signBits: 1, expBits: 5, mantBits: 10, expBias: 15 }
+        };
+
+        function floatToIEEE754(num, format) {
+            const config = formats[format];
+            
+            if (isNaN(num)) {
+                return { sign: 0, exponent: (1 << config.expBits) - 1, mantissa: 1 };
+            }
+            
+            if (!isFinite(num)) {
+                return { 
+                    sign: num < 0 ? 1 : 0, 
+                    exponent: (1 << config.expBits) - 1, 
+                    mantissa: 0 
+                };
+            }
+            
+            if (num === 0) {
+                return { sign: Object.is(num, -0) ? 1 : 0, exponent: 0, mantissa: 0 };
+            }
+
+            const sign = num < 0 ? 1 : 0;
+            num = Math.abs(num);
+
+            let exponent = Math.floor(Math.log2(num));
+            let mantissa = num / Math.pow(2, exponent) - 1;
+
+            exponent += config.expBias;
+
+            if (exponent <= 0) {
+                mantissa = num / Math.pow(2, 1 - config.expBias);
+                exponent = 0;
+            }
+
+            if (exponent >= (1 << config.expBits) - 1) {
+                return { sign, exponent: (1 << config.expBits) - 1, mantissa: 0 };
+            }
+
+            const mantissaBits = Math.round(mantissa * Math.pow(2, config.mantBits));
+            
+            return {
+                sign: sign,
+                exponent: Math.max(0, Math.min(exponent, (1 << config.expBits) - 1)),
+                mantissa: mantissaBits & ((1 << config.mantBits) - 1)
+            };
+        }
+
+        function displayBits(value, bitCount, containerId, className) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            for (let i = bitCount - 1; i >= 0; i--) {
+                const bit = (value >> i) & 1;
+                const bitBox = document.createElement('div');
+                bitBox.className = `bit-box ${className}`;
+                bitBox.textContent = bit;
+                container.appendChild(bitBox);
+            }
+        }
+
+        function calculateStoredValue(ieee, format) {
+            const config = formats[format];
+            
+            if (ieee.exponent === 0) {
+                return Math.pow(-1, ieee.sign) * 
+                    (ieee.mantissa / Math.pow(2, config.mantBits)) * 
+                    Math.pow(2, 1 - config.expBias);
+            } else if (ieee.exponent === (1 << config.expBits) - 1) {
+                return ieee.mantissa === 0 ? 
+                    (ieee.sign ? -Infinity : Infinity) : NaN;
+            } else {
+                return Math.pow(-1, ieee.sign) * 
+                    (1 + ieee.mantissa / Math.pow(2, config.mantBits)) * 
+                    Math.pow(2, ieee.exponent - config.expBias);
+            }
+        }
+
+        function updateAllFormats() {
+            const input = document.getElementById('numberInput').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            
+            errorMsg.textContent = '';
+            
+            if (!input) {
+                return;
+            }
+            
+            try {
+                const num = parseFloat(input);
+                if (isNaN(num) && input.toLowerCase() !== 'nan') {
+                    throw new Error('Invalid number');
+                }
+                
+                Object.keys(formats).forEach(formatName => {
+                    const ieee = floatToIEEE754(num, formatName);
+                    const config = formats[formatName];
+                    
+                    displayBits(ieee.sign, config.signBits, `${formatName}-sign`, 'sign');
+                    displayBits(ieee.exponent, config.expBits, `${formatName}-exponent`, 'exponent');
+                    displayBits(ieee.mantissa, config.mantBits, `${formatName}-mantissa`, 'mantissa');
+                    
+                    const storedValue = calculateStoredValue(ieee, formatName);
+                    const valueElement = document.getElementById(`${formatName}-value`);
+                    
+                    if (isFinite(storedValue)) {
+                        valueElement.textContent = storedValue.toPrecision(9);
+                    } else {
+                        valueElement.textContent = storedValue.toString();
+                    }
+                });
+                
+            } catch (error) {
+                errorMsg.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        document.getElementById('numberInput').addEventListener('input', updateAllFormats);
+        updateAllFormats();
+    </script>
+</body>
+</html>

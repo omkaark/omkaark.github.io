@@ -8,17 +8,17 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz@9..40&family=Caveat:wght@500&family=Merriweather:opsz,wght@18..144,400&display=swap" rel="stylesheet">
     
             <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
-            <title>Floating point maths made simple - Omkaar Kamath</title>
-            <meta name="description" content="Floating point maths made simple - Personal blog post">
-            <meta property="og:title" content="Floating point maths made simple - Omkaar Kamath">
-            <meta property="og:description" content="Floating point maths made simple - Personal blog post">
+            <title>Flagrant thoughts on AI Coding - Omkaar Kamath</title>
+            <meta name="description" content="I have had enough conversations with people where I have been proven right about time, time to put the article out.">
+            <meta property="og:title" content="Flagrant thoughts on AI Coding - Omkaar Kamath">
+            <meta property="og:description" content="I have had enough conversations with people where I have been proven right about time, time to put the article out.">
             <meta property="og:type" content="article">
-            <meta property="og:url" content="https://omkaark.com/posts/fp.html">
-            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/3-float-math/floats.png?raw=true">
+            <meta property="og:url" content="https://omkaark.com/posts/ai-coding.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/16-vlm-rl/game-example.png?raw=true">
             <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:title" content="Floating point maths made simple - Omkaar Kamath">
-            <meta name="twitter:description" content="Floating point maths made simple - Personal blog post">
-            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/3-float-math/floats.png?raw=true">
+            <meta name="twitter:title" content="Flagrant thoughts on AI Coding - Omkaar Kamath">
+            <meta name="twitter:description" content="I have had enough conversations with people where I have been proven right about time, time to put the article out.">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/16-vlm-rl/game-example.png?raw=true">
         
 
     <style>
@@ -363,64 +363,37 @@ body {
 
     
     <main class="post-content">
-        <h1>Floating Point math</h1>
-<p>I wanted to write about different floating point formats. I am omitting float64, MXFP6, MXFP4 and NVFP4 for this post.</p>
-<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/3-float-math/floats.png?raw=true" alt="Different float formats" /></p>
-<h3>What do mantissa and exponent bits represent?</h3>
-<p>The sign bit is as in <code>int</code>, 1 is negative and 0 is positive.</p>
-<p>Exponents represents an offset binary number. To calculate the real exponent, calculate <code>exponent - bias</code>. The bias value is 127 for f32/bf16 and 15 for f16.</p>
-<p>Mantissa represents the fractional part in binary notation with an implicit leading 1 (add 1 to result). Each mantissa bit represents a negative power of 2, so: <br />
-<code>1st bit: 2^-1 = 0.5</code> <br />
-<code>2nd bit: 2^-2 = 0.25</code> <br />
-<code>3rd bit: 2^-3 = 0.125</code> <br />
-...</p>
-<p>Now, say <code>10000000</code> is our 8-bit mantissa, it translates to <code>1 + 0.5 = 1.5</code> in base10.</p>
-<p>Explore further with the calculator below.</p>
-<iframe 
-  src="https://omkaark.com/float-math/calculator.html"
-  width="1100" 
-  height="250" 
-  frameborder="0"
-  style="@media(max-width: 600px){body {display: none;}}"
->
-</iframe>
-
-<p>In general, for any floating point number (fp32, fp8, fp4, etc), with 1 sign bit, e exponent bits and m mantissa bits, this is the general formula to calculate it's value. Personally, this really helped me understand fp representation.</p>
-<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/3-float-math/general-form.png?raw=true" alt="General form for any floating point representation" /></p>
-<p><br/></p>
-<h3>Float32</h3>
-<p>This was the default format for ML. Great support across hardware vendors. f32 has about 7 digits of precision, anything beyond that is usually wrong. The only problem is it's memory intensive, do we really need 8 exponent and 23 mantissa bits?</p>
-<h3>Float16</h3>
-<p>Turns out, no! Float16 hardware support is good but turns out cutting down exponent bits really hurt algorithmic performance of ML models. f16 has about 3 digits of precision.</p>
-<h3>Bfloat16</h3>
-<p>Enter BF16, with the same 8 exponent bits as float 32 with only 7 mantissa bits. Most new models released on huggingface are now primarily bf16. Hardware + Software support for bf16 is great, making it an instant industry standard. bf16 has about 3 digits of precision too. I'll quote google to explain why bf16 is preferred.</p>
-<blockquote cite="https://cloud.google.com/blog/products/ai-machine-learning/bfloat16-the-secret-to-high-performance-on-cloud-tpus">
-Based on our years of experience training and deploying a wide variety of neural networks across Google’s products and services, we knew when we designed Cloud TPUs that neural networks are far more sensitive to the size of the exponent than that of the mantissa. To ensure identical behavior for underflows, overflows, and NaNs, bfloat16 has the same exponent size as FP32. However, bfloat16 handles denormals differently from FP32: it flushes them to zero. Unlike FP16, which typically requires special handling via techniques such as loss scaling [Mic 17], BF16 comes close to being a drop-in replacement for FP32 when training and running deep neural networks.
-</blockquote>
-
-<h3>Float8</h3>
-<p>fp8 is getting more common for inference, flash-attention-3 already has an fp8 implementation.</p>
-<h3>Get mathing</h3>
-<p>Checkout these calculators to add and multiply on float16 values.</p>
-<iframe 
-  src="https://omkaark.com/float-math/float-add.html" 
-  width="840" 
-  height="320" 
-  frameborder="0">
-</iframe>
-
-<p><br/></p>
-<iframe 
-  src="https://omkaark.com/float-math/float-mul.html"
-  width="840" 
-  height="320" 
-  frameborder="0">
-</iframe>
-
-<p>My goal was to write a small blog and cover surface-level details for now. To learn more, I recommend reading <a href="https://jvns.ca/blog/2023/01/13/examples-of-floating-point-problems/#how-does-floating-point-work">this blog</a> by the incredible Julia Evans.</p>
-<blockquote>
-<p>By Omkaar Kamath</p>
-</blockquote>
+        <h1>Flagrant thoughts on AI Coding</h1>
+<p>Most people have the repetitive herd takes. “AI will take over”, “SWEs as a job won’t be a thing”, blah blah doomerism stuff. Your wrong.</p>
+<p>I have a few years of coding experience and to me, coding / building projects is not only a money-earning mechanism, it is something that gives me solace, confidence and joy. Some of you may have a lot more experience than me, but I still urge you to read through and I would love to hear your feedback at omkaar [at] extensible [dot] dev or via DMs.</p>
+<p>I have coded through dark and good times alike, and that has given me immense appreciation of the craft.</p>
+<p>However, none of that matters. Because in this log, I will breakdown using first principles exactly how AI will affect coding.</p>
+<p>Let’s get the obvious ones out of the way:</p>
+<ul>
+<li>Tinkering will be accelerated</li>
+<li>New startups have a major advantage and basically have no engineering effort for their <strong>first few</strong> customers</li>
+<li>Bug finding / fixing will be much more convenient (though not fully-automated)</li>
+<li>Getting feedback on code before code reviews is great</li>
+<li>Small 1-pointer stories (on the Jira board) can be automated and brought on to the review stage easily</li>
+<li>Small-to-medium research projects are automatable. I used it to write a lot of omkaark.com/vlm-rl ’s codebase, I also wrote <a href="https://www.youtube.com/watch?v=139Eq4gDhhA">Patchwork</a>'s vscode extension with heavy AI coding (however I wrote the torch pre-training repo w. minimal AI).</li>
+</ul>
+<p>A very talented SWE friend asked me if I think true understanding is what differentiates a good human SWE vs Agent. I answered “accountability”. A human will be fired for making some of the same mistakes an agent makes, while the company continues to spend 10s of $1000s of dollars on the same agent.</p>
+<p>The illusion of productivity and token subsidies will keep getting people to drink the kool-aid for a bit longer. Eventually, labs will stop subsidizing tokens and then, the fun starts.</p>
+<p>Don’t get me wrong, I am very bullish on AI coding, but not whatever it is people are doing right now in production.</p>
+<ul>
+<li>Please do not offload architectural decisions to LLMs</li>
+<li>Please do not ask it opinions on abstractions, etc. You can get ideas from it after you have a general idea.</li>
+<li>Understand that psycophancy is a thing and you should know more about the LLM</li>
+<li>Do not plan features with LLMs. This is more nuanced, for large codebases I'd actually use LLMs to create diagrams to help me understand the system and where to place the code correctly.</li>
+<li>Using LLMs for research code is dangerous. You want to go slow and a few lines at a time and read those lines carefully. It makes some really silly errors confidently which basically make any results questionable.</li>
+</ul>
+<p>A failure mode I see is really smart people outsourcing all the thought process to LLMs. Over time, you over rely on LLMs and take their changes as gospel. I made the mistake of being too reliant on AI as well and I think my critical thinking atrophied.</p>
+<p>I really like the idea of building targeted harnesses to solve problems like for example, performance. Karpathy’s autoresearch can be rewritten to help with database queries, gpu perf, and basically anything that is verfiable. Using this to find many ideas on how to improve your codebase for that certain task. But then it is upto you to take those ideas and figure out how best to apply them.</p>
+<p>There is this notion that, “oh yeah, of course these models will get better over time, so I will stop getting better at the craft and just use AI”. There are real people and processes behind how these models get better. I would not assume it as a given. It also takes real restraint from model lab data product owners to focus on clean labelled code and not code that boosts SWE benchmarks. The way I see it, even if we hit 100% on SweBenchSuperProMaxVerified5.0, it does not matter if the code is shit and unmergeable and badly abstracted. Passing RL tests (GRPO reward 1 or 0) vs. passing the human reviewer bar is very different criteria.</p>
+<p>I keep having to say this, but I think knowing how to use AI will increase your leverage as a SWE. And no, simply adding codex skills is not what that means.</p>
+<p>Look at how Claude Code worked out as a product. It’s extremely impactful, they def had to scale really quickly so the code base became a mess. I think more careful planning and restructuring makes it easier for agents to give better suggestions, so they could have maintained their speed while having a better codebase. Now, I hear the team is scrambling to fix things in the app.</p>
+<p>I hear the same story playing out time over time from friends who are software leads to engineers at smaller companies.</p>
+<p>When I was working on ultra-fast code completions, my extension to it was atomic edits which is what cursor started off with before this agent hype cycle started. Funny enough, I started my company after realizing the leverage agents would provide. I just did not expect people to topple the way software has been done all this time to ship shitty code.</p>
 
     </main>
     

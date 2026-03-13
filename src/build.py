@@ -141,6 +141,8 @@ def build_index_page(posts):
     # Replace content with posts
     posts_html = ['<main class="posts" id="posts-container">']
     for post in reversed(posts):
+        if post.get('hidden', False):
+            continue
         slug = post.get('slug', slugify(post['name']))
         posts_html.append(f'''
         <a href="posts/{slug}.html" class="post-link">

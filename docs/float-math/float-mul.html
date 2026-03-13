@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Float16 Multiplication Calculator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: white;
+            color: black;
+            font-size: 13px;
+            border: 1px solid #eee;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .input-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            font-size: 16px;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 120px;
+            text-align: center;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #666;
+        }
+
+        .operator {
+            font-size: 24px;
+            font-weight: bold;
+            color: #666;
+            margin: 0 5px;
+        }
+
+        .equals {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin: 0 10px;
+        }
+
+        .calculation-display {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            max-width: 850px;
+        }
+
+        .operand-row, .result-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-radius: 6px;
+            background: #fafafa;
+            border: 1px solid #eee;
+        }
+
+        .result-row {
+            background: #f0f8ff;
+            border: 1px solid #b3d9ff;
+            margin-top: 8px;
+        }
+
+        .operand-label {
+            font-weight: 600;
+            min-width: 60px;
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-label {
+            font-weight: 600;
+            min-width: 60px;
+            font-size: 14px;
+            color: #0066cc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bits-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .bit-group {
+            display: flex;
+            gap: 1px;
+        }
+
+        .bit-box {
+            width: 24px;
+            height: 24px;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-weight: 600;
+            font-size: 11px;
+            background: white;
+        }
+
+        .bit-box.sign {
+            background: #ffb3ba;
+            border-color: #ff9aa2;
+        }
+
+        .bit-box.exponent {
+            background: #baffc9;
+            border-color: #8bc34a;
+        }
+
+        .bit-box.mantissa {
+            background: #bae1ff;
+            border-color: #64b5f6;
+        }
+
+        .value-display {
+            min-width: 100px;
+            text-align: right;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 13px;
+            color: #444;
+            font-weight: 500;
+        }
+
+        .separator {
+            margin: 0 4px;
+            color: #999;
+            font-size: 10px;
+        }
+
+        .error {
+            color: #d32f2f;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+
+        .operation-symbol {
+            font-size: 18px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .section-header {
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                display: none;
+            }
+            
+            .operand-row, .result-row {
+                flex-direction: column;
+                gap: 8px;
+                align-items: stretch;
+            }
+            
+            .bits-container {
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+            
+            .bit-box {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+            }
+            
+            .value-display {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-section">
+            <input type="text" id="input1" placeholder="1.5" value="1.5">
+            <div class="operator">×</div>
+            <input type="text" id="input2" placeholder="2.25" value="2.25">
+            <div class="equals">=</div>
+            <div class="value-display" id="result-decimal" style="font-size: 16px; font-weight: bold; color: #0066cc;">3.375</div>
+        </div>
+
+        <div class="section-header">float16 (e5m10) binary representations</div>
+
+        <div class="calculation-display">
+            <div class="operand-row">
+                <div class="operand-label">
+                    <span>A</span>
+                </div>
+                <div class="bits-container">
+                    <div class="bit-group" id="a-sign"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="a-exponent"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="a-mantissa"></div>
+                </div>
+                <div class="value-display" id="a-value">1.5</div>
+            </div>
+
+            <div class="operand-row">
+                <div class="operand-label">
+                    <span class="operation-symbol">×</span>
+                    <span>B</span>
+                </div>
+                <div class="bits-container">
+                    <div class="bit-group" id="b-sign"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="b-exponent"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="b-mantissa"></div>
+                </div>
+                <div class="value-display" id="b-value">2.25</div>
+            </div>
+
+            <div class="result-row">
+                <div class="result-label">
+                    <span>=</span>
+                    <span>A×B</span>
+                </div>
+                <div class="bits-container">
+                    <div class="bit-group" id="result-sign"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="result-exponent"></div>
+                    <div class="separator">|</div>
+                    <div class="bit-group" id="result-mantissa"></div>
+                </div>
+                <div class="value-display" id="result-value">3.375</div>
+            </div>
+        </div>
+
+        <div class="error" id="errorMsg"></div>
+    </div>
+
+    <script>
+        const format = { signBits: 1, expBits: 5, mantBits: 10, expBias: 15 };
+
+        function floatToIEEE754(num) {
+            if (isNaN(num)) {
+                return { sign: 0, exponent: (1 << format.expBits) - 1, mantissa: 1 };
+            }
+            
+            if (!isFinite(num)) {
+                return { 
+                    sign: num < 0 ? 1 : 0, 
+                    exponent: (1 << format.expBits) - 1, 
+                    mantissa: 0 
+                };
+            }
+            
+            if (num === 0) {
+                return { sign: Object.is(num, -0) ? 1 : 0, exponent: 0, mantissa: 0 };
+            }
+
+            const sign = num < 0 ? 1 : 0;
+            num = Math.abs(num);
+
+            let exponent = Math.floor(Math.log2(num));
+            let mantissa = num / Math.pow(2, exponent) - 1;
+
+            exponent += format.expBias;
+
+            if (exponent <= 0) {
+                mantissa = num / Math.pow(2, 1 - format.expBias);
+                exponent = 0;
+            }
+
+            if (exponent >= (1 << format.expBits) - 1) {
+                return { sign, exponent: (1 << format.expBits) - 1, mantissa: 0 };
+            }
+
+            const mantissaBits = Math.round(mantissa * Math.pow(2, format.mantBits));
+            
+            return {
+                sign: sign,
+                exponent: Math.max(0, Math.min(exponent, (1 << format.expBits) - 1)),
+                mantissa: mantissaBits & ((1 << format.mantBits) - 1)
+            };
+        }
+
+        function displayBits(value, bitCount, containerId, className) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            for (let i = bitCount - 1; i >= 0; i--) {
+                const bit = (value >> i) & 1;
+                const bitBox = document.createElement('div');
+                bitBox.className = `bit-box ${className}`;
+                bitBox.textContent = bit;
+                container.appendChild(bitBox);
+            }
+        }
+
+        function calculateStoredValue(ieee) {
+            if (ieee.exponent === 0) {
+                return Math.pow(-1, ieee.sign) * 
+                    (ieee.mantissa / Math.pow(2, format.mantBits)) * 
+                    Math.pow(2, 1 - format.expBias);
+            } else if (ieee.exponent === (1 << format.expBits) - 1) {
+                return ieee.mantissa === 0 ? 
+                    (ieee.sign ? -Infinity : Infinity) : NaN;
+            } else {
+                return Math.pow(-1, ieee.sign) * 
+                    (1 + ieee.mantissa / Math.pow(2, format.mantBits)) * 
+                    Math.pow(2, ieee.exponent - format.expBias);
+            }
+        }
+
+        function updateCalculation() {
+            const input1 = document.getElementById('input1').value.trim();
+            const input2 = document.getElementById('input2').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            
+            errorMsg.textContent = '';
+            
+            if (!input1 || !input2) {
+                return;
+            }
+            
+            try {
+                const num1 = parseFloat(input1);
+                const num2 = parseFloat(input2);
+                
+                if ((isNaN(num1) && input1.toLowerCase() !== 'nan') || 
+                    (isNaN(num2) && input2.toLowerCase() !== 'nan')) {
+                    throw new Error('Invalid number format');
+                }
+                
+                // Convert inputs to float16 and back to get actual stored values
+                const ieee1 = floatToIEEE754(num1);
+                const ieee2 = floatToIEEE754(num2);
+                
+                const storedValue1 = calculateStoredValue(ieee1);
+                const storedValue2 = calculateStoredValue(ieee2);
+                
+                // Perform multiplication on stored values
+                const product = storedValue1 * storedValue2;
+                const ieeeResult = floatToIEEE754(product);
+                const storedResult = calculateStoredValue(ieeeResult);
+                
+                // Display A
+                displayBits(ieee1.sign, format.signBits, 'a-sign', 'sign');
+                displayBits(ieee1.exponent, format.expBits, 'a-exponent', 'exponent');
+                displayBits(ieee1.mantissa, format.mantBits, 'a-mantissa', 'mantissa');
+                document.getElementById('a-value').textContent = 
+                    isFinite(storedValue1) ? storedValue1.toPrecision(6) : storedValue1.toString();
+                
+                // Display B
+                displayBits(ieee2.sign, format.signBits, 'b-sign', 'sign');
+                displayBits(ieee2.exponent, format.expBits, 'b-exponent', 'exponent');
+                displayBits(ieee2.mantissa, format.mantBits, 'b-mantissa', 'mantissa');
+                document.getElementById('b-value').textContent = 
+                    isFinite(storedValue2) ? storedValue2.toPrecision(6) : storedValue2.toString();
+                
+                // Display Result
+                displayBits(ieeeResult.sign, format.signBits, 'result-sign', 'sign');
+                displayBits(ieeeResult.exponent, format.expBits, 'result-exponent', 'exponent');
+                displayBits(ieeeResult.mantissa, format.mantBits, 'result-mantissa', 'mantissa');
+                document.getElementById('result-value').textContent = 
+                    isFinite(storedResult) ? storedResult.toPrecision(6) : storedResult.toString();
+                
+                // Update main result display
+                document.getElementById('result-decimal').textContent = 
+                    isFinite(storedResult) ? storedResult.toPrecision(6) : storedResult.toString();
+                
+            } catch (error) {
+                errorMsg.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        document.getElementById('input1').addEventListener('input', updateCalculation);
+        document.getElementById('input2').addEventListener('input', updateCalculation);
+        updateCalculation();
+    </script>
+</body>
+</html>
