@@ -92,4 +92,11 @@
     "description": "I have had enough conversations with people where I have been proven right about time, time to put the article out.",
     "slug": "ai-coding",
     "date": "2026-03-11"
+}, {
+    "hidden": false,
+    "name": "Basics of distributed training",
+    "image": "18-distributed-llm/",
+    "description": "I intuitively explain how LLMs get trained across nodes of GPUs.",
+    "slug": "distributed-llms",
+    "date": "2026-05-04"
 }]

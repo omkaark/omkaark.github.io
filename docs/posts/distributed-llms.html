@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz@9..40&family=Caveat:wght@500&family=Merriweather:opsz,wght@18..144,400&display=swap" rel="stylesheet">
+    
+            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
+            <title>Basics of distributed training - Omkaar Kamath</title>
+            <meta name="description" content="I intuitively explain how LLMs get trained across nodes of GPUs.">
+            <meta property="og:title" content="Basics of distributed training - Omkaar Kamath">
+            <meta property="og:description" content="I intuitively explain how LLMs get trained across nodes of GPUs.">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/distributed-llms.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/?raw=true">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="Basics of distributed training - Omkaar Kamath">
+            <meta name="twitter:description" content="I intuitively explain how LLMs get trained across nodes of GPUs.">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/?raw=true">
+        
+
+    <style>
+    /* ---------- TYPOGRAPHY SYSTEM (rem/em only) ---------- */
+:root {
+  /* One knob to rule them all. Change this in media query to scale everything. */
+  --base: 1rem;           /* 1rem = browser default (usually 16px) */
+  --scale: 1.25;          /* modular scale ratio: Major Third */
+
+  /* Precomputed steps off the base using the scale (no px anywhere) */
+  --step-0:  calc(var(--base) * 1.15);
+  --step-1:  calc(var(--base) * 1.4);
+  --step-2:  calc(var(--step-1) * 1.4);
+  --step-3:  calc(var(--step-2) * 1.4);
+  --step-4:  calc(var(--step-3) * 1.7);
+}
+
+/* On mobile, set ONE number (the base) and everything scales automatically */
+@media (max-width: 768px) {
+  :root {
+    --base: 0.95rem;   /* tighten all text ~5%. change to 0.90rem, 1.05rem, etc */
+  }
+}
+
+/* ---------- GLOBAL ---------- */
+html { font-size: 100%; } /* keep user/browser zoom respectful */
+body {
+  font-family: "DM Sans", sans-serif;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: #000;
+  background: #fff;
+  width: 80vw;
+  max-width: 50rem; /* 800px -> 50rem for consistency */
+  margin: 0 auto;
+  padding: 2.5rem 0; /* 40px -> 2.5rem */
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  font-family: "Caveat", monospace;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  border-bottom: 0.125rem solid #000; /* 2px -> rem */
+  padding-bottom: 1.25rem;           /* 20px -> 1.25rem */
+}
+
+.name {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: 0.125rem; /* 2px -> rem */
+  text-transform: uppercase;
+}
+
+/* ---------- INDEX / POSTS LIST ---------- */
+.posts {
+  margin-bottom: 5rem;
+  font-size: var(--step-1);
+}
+
+.post {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem; /* 12px 20px */
+  margin: 1.25rem 0;       /* 20px */
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.post::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -100%;
+  width: 100%;
+  background: #FFFDD0;
+  transition: left 0.15s ease;
+  z-index: -1;
+}
+.post:hover::before { left: 0; }
+
+.post-hover-gif {
+  position: absolute;
+  height: 4rem;
+  width: 40rem;
+  background-image: url("https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/run.gif?raw=true");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: right;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 120ms ease-in;
+}
+
+.post-link:hover .post-hover-gif { 
+  opacity: 1; 
+}
+
+.post-title { flex: 1; margin-right: 1.25rem; }
+.post-link { color: #000; text-decoration: none; font-weight: 400; position: relative; }
+
+.post-date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+/* ---------- FOOTER ---------- */
+.footer {
+  border-top: 0.125rem solid #000;
+  padding-top: 1.25rem;
+  display: flex;
+  gap: 1.875rem; /* 30px */
+}
+
+.social-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem; /* 1px */
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+.social-link:hover { text-decoration: underline; }
+
+/* ---------- POST PAGE ---------- */
+.post-content {
+  margin-bottom: 5rem;
+  max-width: 50rem;
+  font-size: var(--step-0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 0.0625rem solid #000; /* 1px */
+}
+
+.back-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem;
+  font-weight: 700;
+  font-size: var(--step--1);
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Headings on the scale */
+.post-content h1 {
+  font-family: "Merriweather", serif;
+  margin: 1.875rem 0 1.25rem; /* 30 0 20 */
+  font-size: var(--step-3);
+  line-height: 1.2;
+}
+
+.post-content h2 {
+  font-family: "Merriweather", serif;
+  margin: 1.875rem 0 0.9375rem; /* 30 0 15 */
+  font-size: var(--step-2);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h3 {
+  font-family: "Merriweather", serif;
+  margin: 1.5625rem 0 0.625rem; /* 25 0 10 */
+  font-size: var(--step-1);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h4 {
+  font-family: "Merriweather", serif;
+  margin: 1.425rem 0 0.425rem; /* 25 0 10 */
+  font-size: var(--step-0);
+  line-height: 1.25;
+  width: 100%;
+}
+
+.post-content ul {
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.post-content p {
+  margin-bottom: 1.25rem; /* 20 */
+  line-height: 1.6;
+  font-size: var(--step-0);
+  font-family: "DM Sans", sans-serif;
+  width: 100%;
+}
+
+.post-content a { color: #000; text-decoration: underline; }
+.post-content a:hover { background: #f5f5dc; }
+
+/* Images unaffected by font scale, but spacings use rem for consistency */
+.post-content img {
+  margin: 1.25rem 0;
+  max-width: 100%;
+  max-height: 50rem;
+  border-radius: 0.5rem; /* 8px */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px #ccc dashed;
+  padding: 10px;
+}
+
+/* ---------- INLINE CODE ---------- */
+.post-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--step-0);
+  background: rgba(127,127,127,.12);
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  padding: .15em .4em;   /* em ties to current font-size */
+  border-radius: .35em;
+  word-break: break-word;
+}
+
+/* ---------- CODE BLOCKS ---------- */
+.post-content pre {
+  margin: 1.25rem 0;
+  padding: 0.875rem 1rem; /* 14px 16px */
+  border-radius: 0.75rem; /* 12px */
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  background: #f7f7f9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  tab-size: 2;
+  font-size: var(--step-0); /* control block base size */
+  line-height: 1.55;
+  width: 100%;
+}
+.post-content pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;   /* inherit from pre; keep scale intact */
+  line-height: 1.55;
+  display: block;
+  white-space: pre;
+}
+
+/* ---------- TABLES ---------- */
+.post-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 2rem 0;
+  font-size: var(--step-0);
+  font-family: "DM Sans", sans-serif;
+}
+
+.post-content th,
+.post-content td {
+  border: 0.0625rem solid #000; /* thin black grid */
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.post-content th {
+  background: #f5f5f5;
+  font-weight: 700;
+  letter-spacing: 0.03rem;
+  text-transform: uppercase;
+}
+
+.post-content tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.post-content tr:hover td {
+  background: #FFFDD0; /* same yellow hover as posts */
+  transition: background 120ms ease-in-out;
+}
+
+.post-content table code {
+  font-size: 0.95em;
+}
+
+/* ---------- RESPONSIVE LAYOUT ONLY (typography scales via --base) ---------- */
+@media (max-width: 768px) {
+  body { width: 95vw; padding: 1.25rem 0; }
+
+  .header { flex-direction: column; justify-items: center; }
+
+  .post {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.5rem 0.9375rem;
+    margin: 1.25rem 0.625rem;
+    background: #FFFDD0;
+  }
+  .post::before { display: none; }
+
+  .post-title { margin-right: 0; margin-bottom: 0.25rem; }
+
+  .footer { flex-wrap: wrap; gap: 0.9375rem; }
+
+  .post-meta { flex-direction: column; align-items: flex-start; gap: 0.625rem; }
+
+  .post-content { margin: 0 0.625rem; }
+
+  .post-link:hover .post-hover-gif { 
+    opacity: 0;
+  }
+
+  .post-content table {
+    font-size: calc(var(--step-0) * 0.9);
+  }
+
+  .post-content th,
+  .post-content td {
+    padding: 0.6rem 0.75rem;
+  }
+}
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
+        <div style="display: flex; gap: 15px;">
+            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
+            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
+            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
+        </div>
+    </header>
+
+    
+    <main class="post-content">
+        <h1>Basics of distributed training</h1>
+<p>Fun story: When I was in 3rd year uni, I was training a model on my M1 mac for a project, but it was too slow. So, I figured what if we train the same model (same weights w/ same seed) on two separate macs w/ two different data splits, half the steps and then average the weights. I stayed up all night implementing it and the resulting model was a bit better. I looked into this more and my idea was a very dumb version of something called &quot;distributed training&quot;. I later built a simple distributed training module: <a href="https://github.com/omkaark/simple-federated-learning">github</a>, <a href="https://www.youtube.com/watch?v=x45P4XdVIzE">video</a>.</p>
+<p>While the concepts are simple, there is a lot going on behind the scenes of large model training / inference. I wanted to write this post / worklog and run some fun simulations to figure out the best configurations.</p>
+<p>ML uses complicated terms and jargon to gatekeep these ideas for whatever reason. I hope you come out of this with a solid intuition, the terms itself are not too important.</p>
+<p>Lastly, to really understand something, you must implement it from scratch. I could have used torchrun + torch's dist module but I wanted to be as close to the base of the abstraction pancake stack.</p>
+<p>EDIT: I end up early concluding this blog, reason in the early conclusion section below.</p>
+<h2>Communication collectives</h2>
+<p>There are a limited number of ways to send data between compute devices (e.g. GPUs), these are called communication collectives.</p>
+<p>These diagrams are remixed from <a href="https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/collectives.html">NCCL's official page</a>.</p>
+<h4>Broadcast</h4>
+<p>Broadcast simply sends data from current device to all other devices.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/broadcast.png?raw=true" alt="Communication Collective: All Reduce" width="50%" /></p>
+<h4>Reduce</h4>
+<p>Reduce is where data from all devices are received on one device and ran through a reduction operation (like SUM, MIN, MAX).</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/reduce.png?raw=true" alt="Communication Collective: All Reduce" width="50%" /></p>
+<h4>All-Reduce</h4>
+<p>All Reduce is similar to reduce but all the devices get the same reduced data.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/all-reduce.png?raw=true" alt="Communication Collective: All Reduce" width="50%" /></p>
+<h4>Gather</h4>
+<p>Gather gets pieces of data from other devices and stores a stacked copy of all the data.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/gather.png?raw=true" alt="Communication Collective: All Reduce" width="50%" /></p>
+<h4>All-Gather</h4>
+<p>All Reduce is where data from each device sends all other devices it's data and runs an operation (like SUM, MIN, MAX) to reduce the data.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/all-gather.png?raw=true" alt="Communication Collective: All Reduce" width="50%" /></p>
+<h4>Scatter</h4>
+<p>All Reduce is where data from each device sends all other devices it's data and runs an operation (like SUM, MIN, MAX) to reduce the data.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/scatter.png?raw=true" alt="Communication Collective: All Reduce" width="50%" /></p>
+<h4>Reduce-Scatter</h4>
+<p>All Reduce is where data from each device sends all other devices it's data and runs an operation (like SUM, MIN, MAX) to reduce the data.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/reduce-scatter.png?raw=true" alt="Communication Collective: All Reduce" width="50%" /></p>
+<h4>All-to-All</h4>
+<p>All Reduce is where data from each device sends all other devices it's data and runs an operation (like SUM, MIN, MAX) to reduce the data.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/all-to-all.png?raw=true" alt="Communication Collective: All Reduce" width="50%" /></p>
+<h4>Aside</h4>
+<p>While in theory a broadcast is &quot;parallel&quot;, in reality at the hardware level, data is transferred to other devices one device at a time or sequentially with O(N) time complexity. If we view the ranks as a tree as shown below, we can transfer data in O(log(N)) time. The intuition is after rank 0 sends data to rank 1, rank 1 can send data to rank 3 while rank 0 sends data to rank 5, and so on... this pipelining makes it efficient.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/optim-broadcast.png?raw=true" alt="Broadcasting data in a binary tree for logN time complexity" /></p>
+<h2>Axes of paraLLMelism</h2>
+<p>I am coining the word parallmelism \s.</p>
+<p>mpirun / torchrun are used to run the same program across GPUs. When one runs mpirun <code>mpirun --oversubscribe -np 4 uv run python -m src.model_ddp</code>, mpirun spins up 4 processes and runs model_ddp.py program on each process while assigning each process an id we refer to as rank (0...3).</p>
+<h3>Data parallel</h3>
+<p>This is the simplest axis to scale on. The same program is run across ranks (using mpi/torch run), when rank0's model is initialized, broadcast it's weights to every other rank to ensure they start with the same weights. Each program's seed should be different so they read different data batches. Then after the forward and backward passes, the gradients should be all-reduced to get the average of all gradients. Since all ranks start off with the same weights and end up with the same average gradient in each step, the optimizer state is same in each step.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/data-parallel.png?raw=true" alt="Data parallel" /></p>
+<p>Pytorch has a module called DistributedDataParallel which has some interesting optimizations. For large models, backward passes take on the order of seconds, so it does not make sense to do massive grad reductions once at the end. Therefore, as grads are calculated one by one over the backwards graph, they get added to a bucket and once that bucket reaches &gt; 25MB (6.25M params), we run an async all-reduce. So roughly by the time all grads are calculated, they get all-reduce'd as well.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/data-parallel-optimized.png?raw=true" alt="Optimized Data parallel" /></p>
+<h3>Pipeline parallel</h3>
+<p>Pipeline parallelism (PP) is the simplest axis to understand after DP to understand. You simply host chunks of layers on each device.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/pipeline-parallel.png?raw=true" alt="Pipeline Parallelism" /></p>
+<p>While this is simple, there is one glaring problem at scale. At the 100k GPU scale, communication costs are already high. If one full batch needs to traverse through the forward pass, only the GPU where the currently forwarding layers live will be utilized. This is a perf. engs' and maybe finance team's nightmare.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/pipeline-bubbles.png?raw=true" alt="Pipeline Bubbles" /></p>
+<p>As show above, only one GPU is doing work (in green) at a time, while the others are idle. This idleness of a GPU in the pipeline is called a pipeline bubble. A fix to this is using multiple microbatches for forwards and backwards which reduces the bubble fraction (or # of bubbles in the pipeline).</p>
+<p><img src="https://siboehm.com/assets/img/distributed-DNNs/Gpipe_bubble_fractions.png?raw=true" alt="Simon Boehm's Pipeline Bubble Diagram" /></p>
+<p>This image is from Simon Boehm's blog on <a href="https://siboehm.com/articles/22/pipeline-parallel-training">Pipeline Parallelism</a>, I don't think there is a better blog on this. It clearly shows how increasing the microbatches decreases the bubble fraction or empty space relative to total space.</p>
+<p>I would go a bit deeper on newer algorithms for this, but 1) I think Simon has covered them really well and 2) I'll keep it for a separate blog.</p>
+<h3>Tensor parallel</h3>
+<p>Tensor parallel sounds simple but needs some practice to be easy to intuit. The idea is to horizontally (row-parallel) and/or vertically (column-parallel) split a weight tensor across GPUs. This is usually done on massive Linear layers of FFNs within a transformer.</p>
+<p>Take the following example:</p>
+<p>out = W<sub>2</sub>(σ(W<sub>1</sub>(inp))) where inp has dims [B, H], W<sub>1</sub> is [B, 4H] and W<sub>2</sub> is [4H, B]</p>
+<p>These weights get split like below and the WX.1 is assigned to GPU 1 &amp; WX.2 is assigned to GPU 2. This way, we use all GPUs during the compute passes without bubbles.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/tensor-dims.png?raw=true" alt="Tensor Dims" /></p>
+<p>This is how the FFN will be done.</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/tensor-parallel.png?raw=true" alt="Tensor Dims" /></p>
+<p>Notice how we avoid all-gathering right after W1 is done on both GPUs, this is because we don't need the fully materialized matrix. Activation functions are element-wise and W<sub>2, Y</sub> only needs its respective W<sub>1, Y</sub> chunk. But since the next piece of the compute graph needs the full activation, we need to all-reduce SUM on the partial activations.</p>
+<h3>Expert parallel</h3>
+<p>As the name suggests, we put a subset of experts (mixture-of-experts) on each GPU. Nvidia's blog covers this concept well <a href="https://developer.nvidia.com/blog/scaling-large-moe-models-with-wide-expert-parallelism-on-nvl72-rack-scale-systems/">here</a>. This image of theirs demonstrates small- vs large- scale EP.</p>
+<p><img src="https://developer-blogs.nvidia.com/wp-content/uploads/2025/10/image5.gif" alt="NVIDIA's EP" /></p>
+<p>The concept of expert parallel is simple, implementing it in practice is hard. I guess the biggest challenge with expert parallelism is MoE itself. It takes a lot of surrounding infrastructure like load balancing experts to make sure we don't end up with hot nodes or GPUs where experts are frequently used. Ideally, if we have 4 gpus and 16 experts (4 per gpu), each GPU has one &quot;hot&quot; expert, although this is an active research area.</p>
+<h2>Early Conclusion</h2>
+<p>I had a lot more planned for this blog but I realized it's a very redundant topic and there are much better resources that go into more detail. My goal is to write detailed work (usually a documentation of my project written post-work) with illustrative diagrams, but if someone else has done a better job, I'd rather you read <a href="https://huggingface.co/spaces/nanotron/ultrascale-playbook">that</a>. I would have scrapped this work entirely, but I wanted to give the world a few more pretty distributed-ml diagrams.</p>
+
+    </main>
+    
+</body>
+</html>
