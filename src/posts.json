@@ -95,8 +95,15 @@
 }, {
     "hidden": false,
     "name": "Basics of distributed training",
-    "image": "18-distributed-llm/",
+    "image": "18-distributed-llm/optim-broadcast.png",
     "description": "I intuitively explain how LLMs get trained across nodes of GPUs.",
     "slug": "distributed-llms",
     "date": "2026-05-04"
+}, {
+    "hidden": false,
+    "name": "Pipeline Parallelism",
+    "image": "19-pp/zb-h2.png",
+    "description": "I shed some paint on different pipeline parallel schedules and cover the ideas these schedules are based on.",
+    "slug": "pp",
+    "date": "2026-06-02"
 }]

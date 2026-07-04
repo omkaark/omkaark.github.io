@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz@9..40&family=Caveat:wght@500&family=Merriweather:opsz,wght@18..144,400&display=swap" rel="stylesheet">
+    
+            <link rel="icon" type="image/x-icon" href="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/compass.jpg?raw=true">
+            <title>Pipeline Parallelism - Omkaar Kamath</title>
+            <meta name="description" content="I shed some paint on different pipeline parallel schedules and cover the ideas these schedules are based on.">
+            <meta property="og:title" content="Pipeline Parallelism - Omkaar Kamath">
+            <meta property="og:description" content="I shed some paint on different pipeline parallel schedules and cover the ideas these schedules are based on.">
+            <meta property="og:type" content="article">
+            <meta property="og:url" content="https://omkaark.com/posts/pp.html">
+            <meta property="og:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/19-pp/zb-h2.png?raw=true">
+            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:title" content="Pipeline Parallelism - Omkaar Kamath">
+            <meta name="twitter:description" content="I shed some paint on different pipeline parallel schedules and cover the ideas these schedules are based on.">
+            <meta name="twitter:image" content="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/19-pp/zb-h2.png?raw=true">
+        
+
+    <style>
+    /* ---------- TYPOGRAPHY SYSTEM (rem/em only) ---------- */
+:root {
+  /* One knob to rule them all. Change this in media query to scale everything. */
+  --base: 1rem;           /* 1rem = browser default (usually 16px) */
+  --scale: 1.25;          /* modular scale ratio: Major Third */
+
+  /* Precomputed steps off the base using the scale (no px anywhere) */
+  --step-0:  calc(var(--base) * 1.15);
+  --step-1:  calc(var(--base) * 1.4);
+  --step-2:  calc(var(--step-1) * 1.4);
+  --step-3:  calc(var(--step-2) * 1.4);
+  --step-4:  calc(var(--step-3) * 1.7);
+}
+
+/* On mobile, set ONE number (the base) and everything scales automatically */
+@media (max-width: 768px) {
+  :root {
+    --base: 0.95rem;   /* tighten all text ~5%. change to 0.90rem, 1.05rem, etc */
+  }
+}
+
+/* ---------- GLOBAL ---------- */
+html { font-size: 100%; } /* keep user/browser zoom respectful */
+body {
+  font-family: "DM Sans", sans-serif;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: #000;
+  background: #fff;
+  width: 80vw;
+  max-width: 50rem; /* 800px -> 50rem for consistency */
+  margin: 0 auto;
+  padding: 2.5rem 0; /* 40px -> 2.5rem */
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  font-family: "Caveat", monospace;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  border-bottom: 0.125rem solid #000; /* 2px -> rem */
+  padding-bottom: 1.25rem;           /* 20px -> 1.25rem */
+}
+
+.name {
+  font-size: var(--step-2);
+  font-weight: 700;
+  letter-spacing: 0.125rem; /* 2px -> rem */
+  text-transform: uppercase;
+}
+
+/* ---------- INDEX / POSTS LIST ---------- */
+.posts {
+  margin-bottom: 5rem;
+  font-size: var(--step-1);
+}
+
+.post {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem; /* 12px 20px */
+  margin: 1.25rem 0;       /* 20px */
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.post::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 -100%;
+  width: 100%;
+  background: #FFFDD0;
+  transition: left 0.15s ease;
+  z-index: -1;
+}
+.post:hover::before { left: 0; }
+
+.post-hover-gif {
+  position: absolute;
+  height: 4rem;
+  width: 40rem;
+  background-image: url("https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/run.gif?raw=true");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  background-position: right;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 120ms ease-in;
+}
+
+.post-link:hover .post-hover-gif { 
+  opacity: 1; 
+}
+
+.post-title { flex: 1; margin-right: 1.25rem; }
+.post-link { color: #000; text-decoration: none; font-weight: 400; position: relative; }
+
+.post-date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+
+/* ---------- FOOTER ---------- */
+.footer {
+  border-top: 0.125rem solid #000;
+  padding-top: 1.25rem;
+  display: flex;
+  gap: 1.875rem; /* 30px */
+}
+
+.social-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem; /* 1px */
+  font-weight: 700;
+  font-size: var(--step-0);
+}
+.social-link:hover { text-decoration: underline; }
+
+/* ---------- POST PAGE ---------- */
+.post-content {
+  margin-bottom: 5rem;
+  max-width: 50rem;
+  font-size: var(--step-0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 0.0625rem solid #000; /* 1px */
+}
+
+.back-link {
+  color: #000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.0625rem;
+  font-weight: 700;
+  font-size: var(--step--1);
+}
+.back-link:hover { text-decoration: underline; }
+
+/* Headings on the scale */
+.post-content h1 {
+  font-family: "Merriweather", serif;
+  margin: 1.875rem 0 1.25rem; /* 30 0 20 */
+  font-size: var(--step-3);
+  line-height: 1.2;
+}
+
+.post-content h2 {
+  font-family: "Merriweather", serif;
+  margin: 1.875rem 0 0.9375rem; /* 30 0 15 */
+  font-size: var(--step-2);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h3 {
+  font-family: "Merriweather", serif;
+  margin: 1.5625rem 0 0.625rem; /* 25 0 10 */
+  font-size: var(--step-1);
+  line-height: 1.3;
+  width: 100%;
+}
+
+.post-content h4 {
+  font-family: "Merriweather", serif;
+  margin: 1.425rem 0 0.425rem; /* 25 0 10 */
+  font-size: var(--step-0);
+  line-height: 1.25;
+  width: 100%;
+}
+
+.post-content ul {
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.post-content p {
+  margin-bottom: 1.25rem; /* 20 */
+  line-height: 1.6;
+  font-size: var(--step-0);
+  font-family: "DM Sans", sans-serif;
+  width: 100%;
+}
+
+.post-content a { color: #000; text-decoration: underline; }
+.post-content a:hover { background: #f5f5dc; }
+
+/* Images unaffected by font scale, but spacings use rem for consistency */
+.post-content img {
+  margin: 1.25rem 0;
+  max-width: 100%;
+  max-height: 50rem;
+  border-radius: 0.5rem; /* 8px */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  border: 1px #ccc dashed;
+  padding: 10px;
+}
+
+/* ---------- INLINE CODE ---------- */
+.post-content :not(pre) > code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--step-0);
+  background: rgba(127,127,127,.12);
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  padding: .15em .4em;   /* em ties to current font-size */
+  border-radius: .35em;
+  word-break: break-word;
+}
+
+/* ---------- CODE BLOCKS ---------- */
+.post-content pre {
+  margin: 1.25rem 0;
+  padding: 0.875rem 1rem; /* 14px 16px */
+  border-radius: 0.75rem; /* 12px */
+  border: 0.0625rem solid rgba(127,127,127,.25);
+  background: #f7f7f9;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  tab-size: 2;
+  font-size: var(--step-0); /* control block base size */
+  line-height: 1.55;
+  width: 100%;
+}
+.post-content pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 1em;   /* inherit from pre; keep scale intact */
+  line-height: 1.55;
+  display: block;
+  white-space: pre;
+}
+
+/* ---------- TABLES ---------- */
+.post-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 2rem 0;
+  font-size: var(--step-0);
+  font-family: "DM Sans", sans-serif;
+}
+
+.post-content th,
+.post-content td {
+  border: 0.0625rem solid #000; /* thin black grid */
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.post-content th {
+  background: #f5f5f5;
+  font-weight: 700;
+  letter-spacing: 0.03rem;
+  text-transform: uppercase;
+}
+
+.post-content tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.post-content tr:hover td {
+  background: #FFFDD0; /* same yellow hover as posts */
+  transition: background 120ms ease-in-out;
+}
+
+.post-content table code {
+  font-size: 0.95em;
+}
+
+/* ---------- RESPONSIVE LAYOUT ONLY (typography scales via --base) ---------- */
+@media (max-width: 768px) {
+  body { width: 95vw; padding: 1.25rem 0; }
+
+  .header { flex-direction: column; justify-items: center; }
+
+  .post {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.5rem 0.9375rem;
+    margin: 1.25rem 0.625rem;
+    background: #FFFDD0;
+  }
+  .post::before { display: none; }
+
+  .post-title { margin-right: 0; margin-bottom: 0.25rem; }
+
+  .footer { flex-wrap: wrap; gap: 0.9375rem; }
+
+  .post-meta { flex-direction: column; align-items: flex-start; gap: 0.625rem; }
+
+  .post-content { margin: 0 0.625rem; }
+
+  .post-link:hover .post-hover-gif { 
+    opacity: 0;
+  }
+
+  .post-content table {
+    font-size: calc(var(--step-0) * 0.9);
+  }
+
+  .post-content th,
+  .post-content td {
+    padding: 0.6rem 0.75rem;
+  }
+}
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="https://omkaark.github.io" style="text-decoration: none;" class="social-link"><h1 class="name">Omkaar Kamath</h1></a>
+        <div style="display: flex; gap: 15px;">
+            <a href="https://twitter.com/omkizzy" class="social-link">Twitter</a>
+            <a href="https://linkedin.com/in/omkaark" class="social-link">LinkedIn</a>
+            <a href="https://github.com/omkaark" class="social-link">GitHub</a>
+            <a href="https://youtube.com/@omkizzy" class="social-link">Youtube</a>
+        </div>
+    </header>
+
+    
+    <main class="post-content">
+        <h1>Pipeline Parallelism</h1>
+<p>I am trying to get better at Pytorch's <code>dist</code> API and decided to implement all forms of parallelism from scratch with <code>torch.dist</code> (I'll write about this some other time). The others were fine, but something about pipeline parallelism (PP) really entranced me.</p>
+<p><a href="https://siboehm.com/articles/22/pipeline-parallel-training">This blog by Simon</a> is a fantastic intro to pipeline parallelism. I'd recommend giving it a quick read before proceeding.</p>
+<p>There is a certain beauty in old and new PP schedules, and I wanted to share that with this world in this blog. It's also surprisingly therapeutic and fun to draw out pipeline algos in google sheets.</p>
+<h2>Basics</h2>
+<p>Read Simon's blog, but if you are in a crunch, PP's goal is to chop the large model into stages (or sets of continuous layers) and distribute them across ranks like so:</p>
+<p><img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/18-distributed-llm/pipeline-parallel.png?raw=true" alt="PP" /></p>
+<h2>Notation</h2>
+<p>For each scheme, I'll cover the bubble rate, peak memory and communication costs in terms of these variables:</p>
+<ul>
+<li><code>p</code> = Pipeline stages (number of cuts on the model)</li>
+<li><code>m</code> = # of Microbatches (number of cuts on one batch)</li>
+<li><code>v</code> = # of stages per device</li>
+<li><code>t_f</code>, <code>t_b</code> = Time for forward and backward pass on one stage</li>
+<li><code>M</code> = Activation memory stashed on one microbatch on one stage</li>
+<li><code>a</code> = Size of activation tensor in forward (and same size gradient tensor in backward)</li>
+</ul>
+<p>Bubble rate measures the fraction of time compute does no work. It is a good indicator of how much of a cluster's time will be wasted.</p>
+<h2>Schemes</h2>
+<p>This seems like such a simple concept, but in practice there is a lot more than meets the eye. PP researchers' goal is to come up with better schedules that reduce memory requirements, bubbles (we'll cover this in a bit), find ways to accommodate checkpointing, and much more. A schedule is simply the order and type of work running on each rank over time. The underlying PP abstraction writes a state machine which reads this schedule and executes.</p>
+<h3>Naive</h3>
+<p>Look at this Naive schedule:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/19-pp/naive.png?raw=true" alt="Naive schedule" /></p>
+<p>Green denotes forward pass and blue denotes backward pass.</p>
+<p>A forwards pass of a linear layer is one matmul, while the backwards pass is two (one to calculate weights and one to calculate input's grad), which is why the backwards pass is shown as twice as long as the forwards.</p>
+<p>4 GPUs, 1 batch. It's running a full batch on each layer and forwarding the activations to the next layer. Final layer calculates loss and runs backward, then sends its input gradient (the gradient w.r.t. the previous stage's output) to the previous layer which runs backward on it and so on.</p>
+<p>There are a few key assumptions here. Communication costs are assumed to be negligible. It's not only too much work in Excel to resize cells to show it, but it's also a headache to account for when making these algos.</p>
+<p>Communication volume = 2(p - 1) * m * a</p>
+<p>Peak memory = m * M</p>
+<p>Bubble rate = (p - 1) / p</p>
+<h3>GPipe</h3>
+<p>Some people noticed splitting the batch into micro-batches can yield an almost linear speedup, called it GPipe and wrote a <a href="https://arxiv.org/abs/1811.06965">paper</a> on it.
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/19-pp/gpipe.png?raw=true" alt="GPipe schedule" /></p>
+<p>Your receiving GPU does not need to wait for the full batch's forward or backward to complete, only the microbatch's.</p>
+<p>Let's talk about bubbles and why GPipe is better. Look at the Naive schedule again, notice how much whitespace there is. A unit of whitespace or unit of time where a GPU is not doing any work is a bubble. These are pretty expensive at scale since one pays for the GPU regardless of whether it's doing work or not.</p>
+<p>Majority of Naive schedule is made up of white squares so I won't even bother counting it. GPipe gets more useful work done in less time by overlapping a lot of the compute.</p>
+<p>Communication volume = 2(p − 1) * m * a</p>
+<p>Peak memory = m * M</p>
+<p>Bubble rate = (p-1) * (t_f + t_b) / ((m+p-1) * t_f + (m+p-1) * t_b) = (p-1) / (m+p-1)</p>
+<p>There is however one problem with GPipe...</p>
+<h3>1F1B</h3>
+<p><a href="https://arxiv.org/pdf/1806.03377">The 1F1B schedule</a> can solve that problem with GPipe.</p>
+<p>If you look at GPipe carefully, notice how before the first backward pass can start, it needs to store all 8 microbatches' activations, which leads to high peak memory usage. The activation only needs to be stashed until that stage's backwards is done, after which it can be deleted (which reduces memory).</p>
+<p>Now look at 1F1B's schedule:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/19-pp/1f1b.png?raw=true" alt="1F1B schedule" /></p>
+<p>Instead of working with all 8 microbatches at a time, we first forward through the first 4 microbatches and then strictly alternate one-forward-one-backward. While the number of bubbles is the same as GPipe, peak memory drops as we delete activations once that microbatch's backwards is done.</p>
+<p>Communication volume = 2(p − 1) * m * a</p>
+<p>Peak memory = p * M</p>
+<p>Bubble rate = Same as GPipe = (p-1) / (m+p-1)</p>
+<h3>Interleaved 1F1B</h3>
+<p><a href="https://arxiv.org/pdf/2104.04473">The Interleaved 1F1B schedule</a> goes one step further and pushes for slimmer stages. So instead of 1 stage being 4 sequential layers, 1 stage is now 2 sequential layers and 2 stages are stored on one rank instead.</p>
+<p>Given 4 GPUs and 8 sequential layers, GPU 0 will get layers 0 and 4, GPU 1 will get layers 1 and 5, and so on. This is the schedule:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/19-pp/interleaved-1f1b.png?raw=true" alt="Interleaved-1F1B schedule" /></p>
+<p>The early (0-3) layers are shown with lighter shades and later (4-7) layers with darker shades.</p>
+<p>Because each stage is divided half (relative to simple 1F1B), for diagrammatic consistency, each time unit is divided in half, and therefore each white space is 0.5 bubbles. There are 36 white spaces which means only 18 bubble units (compared to regular 1F1B). Instead of completing in 33 units of time, it completes in 28.5!</p>
+<p>Communication volume = 2(v*p − 1) * m * a</p>
+<p>Peak memory = p * M</p>
+<p>Bubble rate = (p−1) / (vm+p−1)</p>
+<h3>Zero Bubble PP</h3>
+<p><a href="https://arxiv.org/pdf/2401.10241">Sea AI Lab's ZBPP</a> paper then introduced a zero bubble (in steady state) schedule. I am showing the ZB-H2 variant's schedule here:
+<img src="https://raw.githubusercontent.com/omkaark/omkaark.github.io/refs/heads/main/public/19-pp/zb-h2.png?raw=true" alt="ZB-H2 schedule" /></p>
+<p>This schedule splits up the two matmuls of the backward pass shown above as the light blue square (which calculates input grad) and dark blue square (which calculates the stage's weight grad).</p>
+<p>The previous layer only needs the input grads during the backwards pass (blocks previous stage) while the weight grads are only needed right before the optimizer run (to actually train the model).</p>
+<p>In yellow is the optimizer step, the assumption is it takes up as much time as the full backward pass.</p>
+<p>This one is handcrafted which is impressive, they figured out a way to pipeline the optimizer state to eliminate bubbles in subsequent epochs. Just keep in mind, these are ideal condition schedules which do not always reflect real conditions.</p>
+<p>Communication volume = 2(p - 1) * m * a</p>
+<p>Peak memory = Way more than 1F1B</p>
+<p>Bubble rate = 0 (in steady state)</p>
+<h3>Note on Others</h3>
+<p>There are many other important / interesting schedules, some notable ones from what I have seen are Chimera (bi-directional pipelining), BitPipe (more bi-direction), Deepseek's DualPipe (bi-direction + work splitting + interesting schedule specifically for cross-node expert parallel) and more. I simply wanted to cover the main classes of these schedules.</p>
+<p>PipeDream was actually meant for async pp, I did not cover this because 1. it is a bit hard to understand and 2. it fell out of favor for synchronous training because weight staleness hurts convergence.</p>
+<h2>Conclusion</h2>
+<p>What I learned from all this is the standard tools in your shed should be micro-batching (to reduce bubbles), work-splitting (to allow for better comms / computation overlap), interleaving (multiple stages per device), bi-direction and building hand-crafted schedules for target workloads.</p>
+<p>All this gave me the idea of formulating a MILP problem to minimize bubbles in a schedule, I was happy to see research on this already exists (Zero Bubble Pipeline Parallelism paper has it). The Real World™ doesn't have 1:2 for F:B passes, calculating forward vs backward time per stage and getting a solver to build a case-specific perfect schedule is a great idea.</p>
+<p>As long as you have a state machine type runner to orchestrate schedule running, running any verified schedule should be easy. Also note that the above schedules are shown for 4 ranks, other microbatch and ranks need other schedules.</p>
+<p>I plan to come back and add ideas to this blog if I come across any other cool schedules.</p>
+
+    </main>
+    
+</body>
+</html>
